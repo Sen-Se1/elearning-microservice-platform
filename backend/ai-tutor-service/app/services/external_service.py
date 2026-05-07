@@ -9,27 +9,32 @@ class ExternalService:
 
     async def get_course_details(self, course_id: str, token: str) -> dict:
         async with httpx.AsyncClient() as client:
-            headers = {"Authorization": f"Bearer {token}"}
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "X-Internal-Service": "ai-tutor-service"
+            }
             response = await client.get(f"{self.course_url}/api/v1/courses/{course_id}", headers=headers)
             response.raise_for_status()
             return response.json()
 
-    async def get_lesson_details(self, course_id: str, lesson_id: str, token: str) -> dict:
+    async def get_course_lessons(self, course_id: str, token: str) -> dict:
         async with httpx.AsyncClient() as client:
-            headers = {"Authorization": f"Bearer {token}"}
-            # Assuming there is an endpoint for lessons in course-service
-            response = await client.get(f"{self.course_url}/api/v1/courses/{course_id}/lessons/{lesson_id}", headers=headers)
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "X-Internal-Service": "ai-tutor-service"
+            }
+            response = await client.get(f"{self.course_url}/api/v1/lessons/course/{course_id}", headers=headers)
             response.raise_for_status()
             return response.json()
 
-    async def get_user_analytics(self, token: str) -> dict:
+    async def get_top_courses(self, token: str) -> List[dict]:
         async with httpx.AsyncClient() as client:
             headers = {"Authorization": f"Bearer {token}"}
-            # Get user metrics to understand their interests
-            response = await client.get(f"{self.analytics_url}/metrics/me", headers=headers)
+            # Get popular courses from analytics service
+            response = await client.get(f"{self.analytics_url}/api/v1/metrics/top-courses", headers=headers)
             if response.status_code == 200:
                 return response.json()
-            return {}
+            return []
 
     async def get_all_courses(self) -> List[dict]:
         async with httpx.AsyncClient() as client:

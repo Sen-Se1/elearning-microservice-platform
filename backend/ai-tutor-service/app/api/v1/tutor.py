@@ -48,11 +48,23 @@ async def generate_quiz(
     """
     token = authorization.split(" ")[1]
     try:
-        # 1. Fetch course details for context
+        # 1. Fetch course details
         course = await external_service.get_course_details(request.course_id, token)
-        context = f"Course: {course['title']}\nDescription: {course['description']}"
         
-        # 3. Generate quiz using LLM
+        # 2. Fetch all lessons for the course to get deeper context
+        lessons_data = await external_service.get_course_lessons(request.course_id, token)
+        lessons = lessons_data.get("items", [])
+        
+        # 3. Build context from lessons (Title and Description)
+        context = f"Course: {course['title']}\n"
+        if lessons:
+            context += "Lessons and Topics covered:\n"
+            for i, lesson in enumerate(lessons, 1):
+                context += f"{i}. {lesson['title']}: {lesson.get('description', '')}\n"
+        else:
+            context += f"Description: {course['description']}"
+        
+        # 4. Generate quiz using LLM
         questions = await llm_service.generate_quiz(request, context)
         return QuizResponse(course_id=request.course_id, questions=questions)
     except Exception as e:
@@ -69,15 +81,17 @@ async def get_recommendations(
     """
     token = authorization.split(" ")[1]
     try:
-        # 1. Get user analytics/history
-        user_data = await external_service.get_user_analytics(token)
-        interests = str(user_data.get("top_categories", "Unknown interests"))
+        # 1. Get trending courses from analytics
+        top_courses = await external_service.get_top_courses(token)
+        trending_info = "Trending Courses:\n"
+        for tc in top_courses[:5]:
+            trending_info += f"- Course ID: {tc['course_id']} (Views: {tc['total_views']}, Enrollments: {tc['total_enrollments']})\n"
         
-        # 2. Get available courses
+        # 2. Get all available courses
         courses = await external_service.get_all_courses()
         
-        # 3. Get recommendations from LLM
-        result = await llm_service.get_recommendations(interests, courses)
+        # 3. Get recommendations from LLM based on trending data
+        result = await llm_service.get_recommendations(trending_info, courses)
         return RecommendationResponse(**result)
     except Exception as e:
         logger.exception("Error in recommendations endpoint")

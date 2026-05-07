@@ -117,21 +117,51 @@ class LLMService:
                 raise Exception(f"LLM API Error: {response.text}")
             
             content = response.json()["choices"][0]["message"]["content"]
-            logger.info(f"LLM Quiz Content: {content}")
+            logger.warning(f"LLM Quiz Content Length: {len(content)}")
+            logger.warning(f"LLM Quiz Content: {content}")
+
+            if not content or content.strip() == "":
+                raise Exception("LLM returned an empty response")
 
             # Remove markdown blocks if present
             if "```json" in content:
                 content = content.split("```json")[1].split("```")[0].strip()
             elif "```" in content:
                 content = content.split("```")[1].split("```")[0].strip()
+            else:
+                # Try to extract the first JSON array or object
+                import re
+                array_match = re.search(r'\[.*\]', content, re.DOTALL)
+                object_match = re.search(r'\{.*\}', content, re.DOTALL)
+                
+                if array_match:
+                    content = array_match.group(0)
+                elif object_match:
+                    content = object_match.group(0)
             
-            questions_data = json.loads(content)
+            try:
+                questions_data = json.loads(content)
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse JSON: {content}")
+                raise Exception(f"Failed to parse LLM response as JSON: {str(e)}")
             
             # If Ollama returns a dict with 'questions' key, handle it
             if isinstance(questions_data, dict) and "questions" in questions_data:
                 questions_data = questions_data["questions"]
                 
-            return [QuizQuestion(**q) for q in questions_data]
+            # Sanitize data types for Pydantic
+            sanitized_questions = []
+            for q in questions_data:
+                if isinstance(q, dict):
+                    # Ensure correct_answer is a string
+                    if "correct_answer" in q:
+                        q["correct_answer"] = str(q["correct_answer"])
+                    # Ensure all options are strings
+                    if "options" in q and isinstance(q["options"], list):
+                        q["options"] = [str(opt) for opt in q["options"]]
+                    sanitized_questions.append(q)
+
+            return [QuizQuestion(**q) for q in sanitized_questions]
 
     async def get_recommendations(self, user_interests: str, available_courses: List[dict]) -> dict:
         system_prompt = (
@@ -168,6 +198,16 @@ class LLMService:
                 content = content.split("```json")[1].split("```")[0].strip()
             elif "```" in content:
                 content = content.split("```")[1].split("```")[0].strip()
+            else:
+                # Try to extract the first JSON object or array
+                import re
+                object_match = re.search(r'\{.*\}', content, re.DOTALL)
+                array_match = re.search(r'\[.*\]', content, re.DOTALL)
+                
+                if object_match:
+                    content = object_match.group(0)
+                elif array_match:
+                    content = array_match.group(0)
             
             return json.loads(content)
 

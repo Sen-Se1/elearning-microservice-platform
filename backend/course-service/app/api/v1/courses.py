@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, Form, File, UploadFile, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, Form, File, UploadFile, BackgroundTasks, Request
 from sqlalchemy.orm import Session
 import uuid
 
@@ -99,6 +99,7 @@ async def get_course(
     current_user: Optional[dict] = Depends(get_current_user_optional),
     token: Optional[str] = Depends(get_token_optional),
     background_tasks: BackgroundTasks = BackgroundTasks(),
+    request: Request = None
 ):
     """
     Get course by ID
@@ -120,7 +121,10 @@ async def get_course(
         )
     
     # Record view event in analytics service (with user info if logged in, or anonymous)
-    background_tasks.add_task(record_analytics_event, "view", str(course_id), token)
+    # Skip if the request comes from an internal service (like AI Tutor)
+    is_internal = request.headers.get("X-Internal-Service") if request else None
+    if not is_internal:
+        background_tasks.add_task(record_analytics_event, "view", str(course_id), token)
     
     return db_course
 
