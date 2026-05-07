@@ -13,3 +13,22 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     content: str
     model: str
+
+class QuizQuestion(BaseModel):
+    question: str
+    options: List[str]
+    correct_answer: str
+    explanation: str
+
+class QuizRequest(BaseModel):
+    course_id: str
+    lesson_id: Optional[str] = None
+    num_questions: int = 5
+
+class QuizResponse(BaseModel):
+    course_id: str
+    questions: List[QuizQuestion]
+
+class RecommendationResponse(BaseModel):
+    recommendations: List[dict]
+    explanation: str

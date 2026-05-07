@@ -11,7 +11,11 @@ class Settings(BaseSettings):
     # LLM Settings (Local Ollama default)
     LLM_API_URL: str = Field(default="http://ollama:11434/v1", validation_alias="LLM_API_URL")
     LLM_MODEL: str = Field(default="llama3", validation_alias="LLM_MODEL")
-    LLM_API_KEY: str = Field(default="ollama", validation_alias="LLM_API_KEY") # Ollama doesn't need key but OpenAI compatibility might
+    LLM_API_KEY: str = Field(default="ollama", validation_alias="LLM_API_KEY") 
+    
+    # External Services
+    COURSE_SERVICE_URL: str = Field(default="http://course-service:8001", validation_alias="COURSE_SERVICE_URL")
+    ANALYTICS_SERVICE_URL: str = Field(default="http://analytics-service:8003", validation_alias="ANALYTICS_SERVICE_URL")
     
     # JWT Settings
     JWT_SECRET_KEY: str
