@@ -27,6 +27,16 @@ class ExternalService:
             response.raise_for_status()
             return response.json()
 
+    async def get_lesson_details(self, lesson_id: str, token: str) -> dict:
+        async with httpx.AsyncClient() as client:
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "X-Internal-Service": "ai-tutor-service"
+            }
+            response = await client.get(f"{self.course_url}/api/v1/lessons/{lesson_id}", headers=headers)
+            response.raise_for_status()
+            return response.json()
+
     async def get_top_courses(self, token: str) -> List[dict]:
         async with httpx.AsyncClient() as client:
             headers = {"Authorization": f"Bearer {token}"}

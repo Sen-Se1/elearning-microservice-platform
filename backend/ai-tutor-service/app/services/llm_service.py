@@ -13,7 +13,7 @@ class LLMService:
         self.model = settings.LLM_MODEL
         self.api_key = settings.LLM_API_KEY
 
-    async def get_chat_response(self, request: ChatRequest) -> str:
+    async def get_chat_response(self, request: ChatRequest, context: str = "") -> str:
         async with httpx.AsyncClient() as client:
             messages = [{"role": m.role, "content": m.content} for m in request.messages]
             
@@ -22,6 +22,9 @@ class LLMService:
             
             if request.course_id:
                 system_prompt += f" You are currently helping with the course: {request.course_id}."
+            
+            if context:
+                system_prompt += f"\n\nContext for current discussion:\n{context}"
 
             if not any(m["role"] == "system" for m in messages):
                 messages.insert(0, {
@@ -50,14 +53,14 @@ class LLMService:
             data = response.json()
             return data["choices"][0]["message"]["content"]
 
-    async def stream_chat_response(self, request: ChatRequest) -> AsyncGenerator[str, None]:
+    async def stream_chat_response(self, request: ChatRequest, context: str = "") -> AsyncGenerator[str, None]:
         async with httpx.AsyncClient() as client:
             messages = [{"role": m.role, "content": m.content} for m in request.messages]
             
             if not any(m["role"] == "system" for m in messages):
                 messages.insert(0, {
                     "role": "system", 
-                    "content": "You are a helpful AI Tutor for an E-learning platform."
+                    "content": f"You are a helpful AI Tutor for an E-learning platform. Help students understand complex concepts. Context: {context}" if context else "You are a helpful AI Tutor for an E-learning platform."
                 })
 
             payload = {
@@ -142,8 +145,22 @@ class LLMService:
             try:
                 questions_data = json.loads(content)
             except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse JSON: {content}")
-                raise Exception(f"Failed to parse LLM response as JSON: {str(e)}")
+                # Fallback: try to strip common trailing junk (text after the JSON)
+                try:
+                    if content.strip().startswith("["):
+                        last_bracket = content.rfind("]")
+                        if last_bracket != -1:
+                            questions_data = json.loads(content[:last_bracket+1])
+                        else: raise e
+                    elif content.strip().startswith("{"):
+                        last_brace = content.rfind("}")
+                        if last_brace != -1:
+                            questions_data = json.loads(content[:last_brace+1])
+                        else: raise e
+                    else: raise e
+                except Exception:
+                    logger.error(f"Failed to parse JSON: {content}")
+                    raise Exception(f"Failed to parse LLM response as JSON: {str(e)}")
             
             # If Ollama returns a dict with 'questions' key, handle it
             if isinstance(questions_data, dict) and "questions" in questions_data:
@@ -209,6 +226,35 @@ class LLMService:
                 elif array_match:
                     content = array_match.group(0)
             
-            return json.loads(content)
+            try:
+                # If content is a list of objects like {} , {} , wrap it
+                content_clean = content.strip()
+                if content_clean.startswith("{") and "}," in content_clean:
+                    # It might be multiple objects. Try wrapping in []
+                    try:
+                        potential_list = json.loads(f"[{content_clean}]")
+                        return {"recommendations": potential_list, "explanation": "Recommended based on platform trends."}
+                    except:
+                        pass
+                return json.loads(content)
+            except json.JSONDecodeError as e:
+                # Fallback: try to strip common trailing junk
+                try:
+                    content_clean = content.strip()
+                    if content_clean.startswith("{"):
+                        last_brace = content_clean.rfind("}")
+                        if last_brace != -1:
+                            cleaned = content_clean[:last_brace+1]
+                            # Try again with cleaned
+                            if "}," in cleaned and not cleaned.startswith("["):
+                                try:
+                                    potential_list = json.loads(f"[{cleaned}]")
+                                    return {"recommendations": potential_list, "explanation": "Recommended based on platform trends."}
+                                except: pass
+                            return json.loads(cleaned)
+                    raise e
+                except Exception as inner_e:
+                    logger.error(f"Failed to parse Recommendation JSON: {content}")
+                    raise Exception(f"Failed to parse LLM recommendations as JSON: {str(inner_e)}")
 
 llm_service = LLMService()

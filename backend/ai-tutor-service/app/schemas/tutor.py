@@ -8,6 +8,7 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     messages: List[ChatMessage]
     course_id: Optional[str] = None
+    lesson_id: Optional[str] = None
     stream: bool = False
 
 class ChatResponse(BaseModel):

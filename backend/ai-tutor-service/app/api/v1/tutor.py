@@ -3,8 +3,9 @@ from fastapi.responses import StreamingResponse
 from ...schemas.tutor import ChatRequest, ChatResponse, QuizRequest, QuizResponse, RecommendationResponse
 from ...services.llm_service import llm_service
 from ...services.external_service import external_service
-from ...auth import get_current_user
+from ...auth import get_current_user, get_current_user_optional
 from ...core.config import settings
+from typing import Optional
 import logging
 
 logger = logging.getLogger(__name__)
@@ -12,25 +13,53 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest, current_user: dict = Depends(get_current_user)):
+async def chat(request: ChatRequest, current_user: Optional[dict] = Depends(get_current_user_optional)):
     """
-    Non-streaming chat endpoint
+    Standard chat endpoint with optional context
     """
     try:
-        content = await llm_service.get_chat_response(request)
+        context = ""
+        user_token = "" # Fallback
+        
+        if request.lesson_id:
+            try:
+                lesson = await external_service.get_lesson_details(request.lesson_id, user_token)
+                context = f"Lesson Title: {lesson.get('title')}\nDescription: {lesson.get('description')}\nContent: {lesson.get('content')}"
+            except: pass
+        elif request.course_id:
+            try:
+                course = await external_service.get_course_details(request.course_id, user_token)
+                context = f"Course Title: {course.get('title')}\nDescription: {course.get('description')}"
+            except: pass
+
+        content = await llm_service.get_chat_response(request, context=context)
         return ChatResponse(content=content, model=settings.LLM_MODEL)
     except Exception as e:
         logger.exception("Error in chat endpoint")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/chat/stream")
-async def chat_stream(request: ChatRequest, current_user: dict = Depends(get_current_user)):
+async def chat_stream(request: ChatRequest, current_user: Optional[dict] = Depends(get_current_user_optional)):
     """
-    Streaming chat endpoint
+    Streaming chat endpoint with optional context
     """
     try:
+        context = ""
+        user_token = "" # Fallback
+        
+        if request.lesson_id:
+            try:
+                lesson = await external_service.get_lesson_details(request.lesson_id, user_token)
+                context = f"Lesson Title: {lesson.get('title')}\nDescription: {lesson.get('description')}\nContent: {lesson.get('content')}"
+            except: pass
+        elif request.course_id:
+            try:
+                course = await external_service.get_course_details(request.course_id, user_token)
+                context = f"Course Title: {course.get('title')}\nDescription: {course.get('description')}"
+            except: pass
+
         return StreamingResponse(
-            llm_service.stream_chat_response(request),
+            llm_service.stream_chat_response(request, context=context),
             media_type="text/event-stream"
         )
     except Exception as e:
