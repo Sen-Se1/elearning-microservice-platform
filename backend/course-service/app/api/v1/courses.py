@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, Form, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, Form, File, UploadFile, BackgroundTasks
 from sqlalchemy.orm import Session
 import uuid
 
@@ -10,8 +10,9 @@ from ...schemas.course import (
     CourseBase, CourseUpdateForm, CourseResponse, 
     CourseListResponse, CourseLevel, CourseCreateForm, CourseUpdateResponse
 )
-from ...core.auth import get_current_user, get_current_instructor, get_current_user_optional
+from ...core.auth import get_current_user, get_current_instructor, get_current_user_optional, get_token_optional
 from ...core.minio_client import minio_client
+from ...core.analytics import record_analytics_event
 
 router = APIRouter()
 
@@ -92,10 +93,12 @@ def get_courses(
     )
 
 @router.get("/{course_id}", response_model=CourseResponse)
-def get_course(
+async def get_course(
     course_id: uuid.UUID = Path(...),
     db: Session = Depends(get_db),
     current_user: Optional[dict] = Depends(get_current_user_optional),
+    token: Optional[str] = Depends(get_token_optional),
+    background_tasks: BackgroundTasks = BackgroundTasks(),
 ):
     """
     Get course by ID
@@ -115,6 +118,9 @@ def get_course(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Course not found"
         )
+    
+    # Record view event in analytics service (with user info if logged in, or anonymous)
+    background_tasks.add_task(record_analytics_event, "view", str(course_id), token)
     
     return db_course
 

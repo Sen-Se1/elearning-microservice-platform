@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: list = ["*"]
     
+    # Analytics Service
+    analytics_service_url: str = Field(default="http://analytics-service:8003", validation_alias="ANALYTICS_SERVICE_URL")
+    
     class Config:
         env_file = "../../.env"
         case_sensitive = False  # This allows case-insensitive matching

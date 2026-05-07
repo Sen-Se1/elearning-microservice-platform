@@ -12,7 +12,7 @@ class EventResponse(BaseModel):
     event_type: EventType
     user_id: Optional[str]
     course_id: UUID
-    user_role: UserRole
+    user_role: Optional[UserRole]
     created_at: datetime
 
     class Config:

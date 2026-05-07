@@ -26,7 +26,7 @@ class AnalyticsEvent(Base):
     event_type = Column(Enum(EventType, name="event_type_enum", schema=SCHEMA_NAME), nullable=False)
     user_id = Column(String(24), nullable=True)
     course_id = Column(UUID(as_uuid=True), nullable=False)
-    user_role = Column(Enum(UserRole, name="user_role_enum", schema=SCHEMA_NAME), nullable=False)
+    user_role = Column(Enum(UserRole, name="user_role_enum", schema=SCHEMA_NAME), nullable=True)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

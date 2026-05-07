@@ -4,7 +4,7 @@ from datetime import date
 from ..database import get_db
 from ..models.analytics import AnalyticsEvent, CourseDailyMetric, EventType
 from ..schemas.analytics import EventCreate, EventResponse
-from ..auth import get_current_user
+from ..auth import get_current_user, get_current_user_optional
 from ..core.redis import delete_cache
 import logging
 
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/events", tags=["events"])
 
 @router.post("/view", response_model=EventResponse, status_code=status.HTTP_201_CREATED)
-def record_view(event: EventCreate, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+def record_view(event: EventCreate, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user_optional)):
     return record_event(event, EventType.course_view, db, current_user)
 
 @router.post("/enroll", response_model=EventResponse, status_code=status.HTTP_201_CREATED)
@@ -24,9 +24,9 @@ def record_event(event_in: EventCreate, event_type: EventType, db: Session, curr
     # 1. Record the raw granular event for auditing and deep analysis
     db_event = AnalyticsEvent(
         event_type=event_type,
-        user_id=current_user["user_id"],
+        user_id=current_user["user_id"] if current_user else None,
         course_id=event_in.course_id,
-        user_role=current_user["role"]
+        user_role=current_user["role"] if current_user else None
     )
     db.add(db_event)
     
@@ -55,7 +55,8 @@ def record_event(event_in: EventCreate, event_type: EventType, db: Session, curr
         metric.enrollments_count += 1
         
     db.commit()
-    logger.info(f"Recorded {event_type} for course {event_in.course_id} by user {current_user['user_id']}")
+    user_id = current_user['user_id'] if current_user else 'anonymous'
+    logger.info(f"Recorded {event_type} for course {event_in.course_id} by user {user_id}")
     
     # Cache Invalidation: Delete relevant analytics keys
     delete_cache("top_courses")

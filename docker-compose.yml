@@ -50,6 +50,7 @@ services:
       - APP_NAME=Learning Portal
       - APP_VERSION=1.0.0
       - DEBUG=${DEBUG:-false}
+      - ANALYTICS_SERVICE_URL=http://analytics-service:8003
     depends_on:
       postgres:
         condition: service_healthy

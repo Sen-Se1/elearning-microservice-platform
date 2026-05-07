@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Path
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, BackgroundTasks
 from sqlalchemy.orm import Session
 import uuid
 
@@ -11,15 +11,18 @@ from ...schemas.enrollment import (
     EnrollmentCreate, EnrollmentUpdate, EnrollmentResponse,
     EnrollmentWithCourse, EnrollmentListResponse, EnrollmentStats
 )
-from ...core.auth import get_current_student, get_current_instructor
+from ...core.auth import get_current_student, get_current_instructor, get_token
+from ...core.analytics import record_analytics_event
 
 router = APIRouter()
 
 @router.post("/", response_model=EnrollmentResponse, status_code=status.HTTP_201_CREATED)
-def enroll_in_course(
+async def enroll_in_course(
     enrollment_in: EnrollmentCreate,
     current_user: dict = Depends(get_current_student),
+    token: str = Depends(get_token),
     db: Session = Depends(get_db),
+    background_tasks: BackgroundTasks = BackgroundTasks(),
 ):
     """
     Enroll current user in a course
@@ -58,6 +61,10 @@ def enroll_in_course(
             user_id=current_user["user_id"],
             course_id=enrollment_in.course_id
         )
+        
+        # Record enrollment event in analytics service
+        background_tasks.add_task(record_analytics_event, "enroll", str(enrollment_in.course_id), token)
+        
         return db_enrollment
     except Exception as e:
         raise HTTPException(

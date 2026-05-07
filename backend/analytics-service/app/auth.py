@@ -1,5 +1,6 @@
 from jose import jwt, JWTError, ExpiredSignatureError
 from fastapi import HTTPException, status, Depends
+from typing import Optional
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from .core.config import settings
 
@@ -40,3 +41,13 @@ def decode_jwt(token: str):
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
     return decode_jwt(token)
+
+security_optional = HTTPBearer(auto_error=False)
+
+def get_current_user_optional(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_optional)):
+    if credentials:
+        try:
+            return decode_jwt(credentials.credentials)
+        except Exception:
+            return None
+    return None
