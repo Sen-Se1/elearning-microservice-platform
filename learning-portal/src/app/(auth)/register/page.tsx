@@ -15,19 +15,21 @@ import { BookOpen, Loader2, ArrowLeft, User, Mail, Lock, ShieldCheck } from 'luc
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
-const registerSchema = z.object({
+const baseRegisterSchema = z.object({
   firstName: z.string().min(2, 'First name is required'),
   lastName: z.string().min(2, 'Last name is required'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   passwordConfirm: z.string().min(8, 'Confirm password is required'),
-  role: z.enum(['learner', 'instructor']).default('learner'),
-}).refine((data) => data.password === data.passwordConfirm, {
+  role: z.enum(['learner', 'instructor']),
+});
+
+const registerSchema = baseRegisterSchema.refine((data) => data.password === data.passwordConfirm, {
   message: "Passwords don't match",
   path: ["passwordConfirm"],
 });
 
-type RegisterForm = z.infer<typeof registerSchema>;
+type RegisterForm = z.infer<typeof baseRegisterSchema>;
 
 export default function RegisterPage() {
   const { user, loading } = useAuth();
@@ -149,7 +151,7 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          <Card className="border-none shadow-none bg-transparent lg:bg-transparent">
+          <Card className="bg-transparent border-none ring-0 shadow-none">
             <CardContent className="p-0">
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
@@ -278,7 +280,7 @@ export default function RegisterPage() {
                 </Button>
               </form>
             </CardContent>
-            <CardFooter className="p-0 pt-8">
+            <CardFooter className="p-0 pt-8 bg-transparent border-none">
               <p className="text-sm text-center text-muted-foreground w-full">
                 Already have an account?{' '}
                 <Link href="/login" className="text-indigo-400 hover:text-indigo-300 transition-colors font-bold hover:underline underline-offset-4">

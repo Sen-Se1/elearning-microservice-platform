@@ -11,7 +11,7 @@ import { userApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookOpen, Loader2, ArrowLeft, Mail } from 'lucide-react';
+import { BookOpen, Loader2, ArrowLeft, Mail, Lock, BrainCircuit } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
@@ -75,7 +75,7 @@ export default function LoginPage() {
           className="relative z-10 max-w-md text-center"
         >
           <div className="mb-8 inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl">
-            <BookOpen className="text-white w-10 h-10" />
+            <BrainCircuit className="text-white w-10 h-10" />
           </div>
           <h1 className="text-4xl font-bold text-white mb-6 font-outfit">
             Master New Skills with <span className="gradient-text">AuraLearn</span>
@@ -122,21 +122,8 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <Card className="border-none shadow-none bg-transparent lg:bg-transparent">
+          <Card className="bg-transparent border-none ring-0 shadow-none">
             <CardContent className="p-0 space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-    
-              </div>
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-white/10" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-                </div>
-              </div>
-
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium ml-1">Email address</label>
@@ -167,12 +154,15 @@ export default function LoginPage() {
                       Forgot password?
                     </Link>
                   </div>
-                  <Input
-                    {...register('password')}
-                    type="password"
-                    placeholder="••••••••"
-                    className="bg-white/5 border-white/10 focus:border-indigo-500/50 transition-all h-11"
-                  />
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      {...register('password')}
+                      type="password"
+                      placeholder="••••••••"
+                      className="pl-10 bg-white/5 border-white/10 focus:border-indigo-500/50 transition-all h-11"
+                    />
+                  </div>
                   {errors.password && (
                     <motion.p 
                       initial={{ opacity: 0, x: -10 }} 
@@ -200,7 +190,7 @@ export default function LoginPage() {
                 </Button>
               </form>
             </CardContent>
-            <CardFooter className="p-0 pt-8 flex flex-col space-y-4">
+            <CardFooter className="p-0 pt-8 flex flex-col space-y-4 bg-transparent border-none">
               <p className="text-sm text-center text-muted-foreground">
                 Don't have an account?{' '}
                 <Link href="/register" className="text-indigo-400 hover:text-indigo-300 transition-colors font-semibold underline-offset-4 hover:underline">

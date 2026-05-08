@@ -6,7 +6,7 @@ import { useAuth } from './AuthProvider';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { 
-  BookOpen, 
+  BrainCircuit, 
   Search, 
   User as UserIcon, 
   LogOut, 
@@ -14,6 +14,7 @@ import {
   Menu,
   Sparkles
 } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +25,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export const Navbar = () => {
   const { user, logout } = useAuth();
+  const pathname = usePathname();
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-white/10 bg-background/60 backdrop-blur-xl">
@@ -31,27 +33,27 @@ export const Navbar = () => {
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-            <BookOpen className="text-white w-5 h-5" />
+            <BrainCircuit className="text-white w-5 h-5" />
           </div>
           <span className="text-xl font-bold font-outfit tracking-tight">Aura<span className="text-indigo-500">Learn</span></span>
         </Link>
 
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-8 text-sm font-medium">
-          <Link href="/" className="hover:text-indigo-400 transition-colors">Home</Link>
-          <Link href="/courses" className="hover:text-indigo-400 transition-colors">Courses</Link>
+          <Link href="/" className={cn("transition-colors", pathname === '/' ? "text-indigo-400" : "hover:text-indigo-400")}>Home</Link>
+          <Link href="/courses" className={cn("transition-colors", pathname.startsWith('/courses') ? "text-indigo-400" : "hover:text-indigo-400")}>Courses</Link>
           {user && (
             <>
               {user.role === 'instructor' ? (
-                <Link href="/instructor" className="hover:text-indigo-400 transition-colors text-indigo-400">
+                <Link href="/instructor" className={cn("transition-colors", pathname.startsWith('/instructor') ? "text-indigo-400" : "hover:text-indigo-400")}>
                   Instructor Studio
                 </Link>
               ) : (
                 <>
-                  <Link href="/dashboard" className="hover:text-indigo-400 transition-colors">
+                  <Link href="/dashboard" className={cn("transition-colors", pathname.startsWith('/dashboard') ? "text-indigo-400" : "hover:text-indigo-400")}>
                     My Learning
                   </Link>
-                  <Link href="/ai-tutor" className="hover:text-indigo-400 transition-colors font-medium flex items-center gap-1.5 text-indigo-400">
+                  <Link href="/ai-tutor" className={cn("transition-colors font-medium flex items-center gap-1.5", pathname.startsWith('/ai-tutor') ? "text-indigo-400" : "hover:text-indigo-400")}>
                     <Sparkles className="w-4 h-4" /> AI Tutor
                   </Link>
                 </>

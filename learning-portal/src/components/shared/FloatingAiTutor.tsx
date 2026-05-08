@@ -76,33 +76,33 @@ export function FloatingAiTutor() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end p-2">
+    <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end gap-3">
       <AnimatePresence>
         {isOpen && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20, transformOrigin: 'bottom right' }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="mb-4 w-[380px] h-[520px] glass border border-white/20 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col p-2"
+            className="w-[380px] h-[520px] rounded-2xl shadow-2xl overflow-hidden flex flex-col bg-[#0f1729] border border-indigo-500/20"
           >
             {/* Header */}
-            <div className="p-4 bg-indigo-600 flex items-center justify-between text-white">
+            <div className="flex items-center justify-between px-4 py-3 bg-indigo-600 shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                  <BrainCircuit className="w-5 h-5" />
+                <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                  <BrainCircuit className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm">AI Tutor</h3>
+                  <h3 className="font-bold text-sm text-white">AI Tutor</h3>
                   <div className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-[10px] opacity-80">Online & Ready</span>
+                    <span className="text-[10px] text-white/70">Online & Ready</span>
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-1">
                 {user.role !== 'instructor' && (
                   <Link href="/ai-tutor">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/10 rounded-full">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/10 rounded-full text-white">
                       <Maximize2 className="w-4 h-4" />
                     </Button>
                   </Link>
@@ -111,7 +111,7 @@ export function FloatingAiTutor() {
                   variant="ghost" 
                   size="icon" 
                   onClick={() => setIsOpen(false)}
-                  className="h-8 w-8 hover:bg-white/10 rounded-full"
+                  className="h-8 w-8 hover:bg-white/10 rounded-full text-white"
                 >
                   <Minus className="w-4 h-4" />
                 </Button>
@@ -119,15 +119,15 @@ export function FloatingAiTutor() {
             </div>
 
             {/* Chat Area */}
-            <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-              <div className="space-y-4">
+            <ScrollArea className="flex-1 min-h-0" ref={scrollRef}>
+              <div className="space-y-3 p-4">
                 {messages.map((msg, idx) => (
                   <div key={idx} className={cn("flex", msg.role === 'user' ? "justify-end" : "justify-start")}>
                     <div className={cn(
-                      "max-w-[85%] p-3 rounded-2xl text-sm shadow-sm",
+                      "max-w-[85%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed",
                       msg.role === 'user' 
-                        ? "bg-indigo-600 text-white rounded-br-none" 
-                        : "bg-white/10 border border-white/10 rounded-bl-none"
+                        ? "bg-indigo-600 text-white rounded-br-sm" 
+                        : "bg-white/[0.08] text-gray-200 border border-white/10 rounded-bl-sm"
                     )}>
                       {msg.content}
                     </div>
@@ -135,10 +135,10 @@ export function FloatingAiTutor() {
                 ))}
                 {loading && (
                   <div className="flex justify-start">
-                    <div className="bg-white/10 rounded-2xl p-3 flex gap-1">
-                      <span className="w-1 h-1 rounded-full bg-indigo-400 animate-bounce" />
-                      <span className="w-1 h-1 rounded-full bg-indigo-400 animate-bounce [animation-delay:0.2s]" />
-                      <span className="w-1 h-1 rounded-full bg-indigo-400 animate-bounce [animation-delay:0.4s]" />
+                    <div className="bg-white/[0.08] border border-white/10 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce [animation-delay:0.2s]" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce [animation-delay:0.4s]" />
                     </div>
                   </div>
                 )}
@@ -146,26 +146,26 @@ export function FloatingAiTutor() {
             </ScrollArea>
 
             {/* Input */}
-            <div className="p-4 bg-white/5 border-t border-white/5">
-              <div className="relative flex gap-2">
+            <div className="px-4 py-3 border-t border-white/10 bg-[#0c1322] shrink-0">
+              <div className="flex gap-2">
                 <Input 
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                   placeholder="Ask me anything..."
-                  className="bg-background/50 border-white/10 rounded-xl pr-10 focus-visible:ring-indigo-500"
+                  className="bg-white/[0.06] border-white/10 rounded-xl text-sm text-white placeholder:text-gray-500 focus-visible:ring-indigo-500"
                 />
                 <Button 
                   size="icon" 
                   onClick={handleSendMessage}
                   disabled={loading || !input.trim()}
-                  className="bg-indigo-600 hover:bg-indigo-700 w-10 h-10 rounded-xl flex-shrink-0"
+                  className="bg-indigo-600 hover:bg-indigo-700 w-10 h-10 rounded-xl shrink-0"
                 >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 </Button>
               </div>
-              <p className="text-[10px] text-center text-muted-foreground mt-2">
-                Try: <span className="text-indigo-400 cursor-pointer" onClick={() => setInput("Explain Python decorators")}>"Explain Python decorators"</span>
+              <p className="text-[10px] text-center text-gray-500 mt-2">
+                Try: <span className="text-indigo-400 cursor-pointer hover:underline" onClick={() => setInput("Explain Python decorators")}>&quot;Explain Python decorators&quot;</span>
               </p>
             </div>
           </motion.div>
@@ -178,19 +178,19 @@ export function FloatingAiTutor() {
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "w-16 h-16 rounded-full shadow-2xl flex items-center justify-center transition-all duration-500 border border-white/20 relative group overflow-hidden",
+          "w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all duration-500 border border-white/20 relative group overflow-hidden",
           isOpen ? "bg-zinc-900 rotate-90" : "bg-indigo-600"
         )}
       >
         <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
         {isOpen ? (
-          <X className="w-8 h-8 text-white" />
+          <X className="w-6 h-6 text-white" />
         ) : (
           <>
-            <MessageCircle className="w-8 h-8 text-white" />
-            <div className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 border-4 border-background rounded-full" />
+            <MessageCircle className="w-6 h-6 text-white" />
+            <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-emerald-500 border-2 border-background rounded-full" />
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
-               <Sparkles className="w-8 h-8 text-white/40 animate-pulse" />
+               <Sparkles className="w-6 h-6 text-white/40 animate-pulse" />
             </div>
           </>
         )}
