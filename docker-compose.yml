@@ -12,6 +12,19 @@ networks:
     driver: bridge
 
 services:
+  api-gateway:
+    build: ./gateway
+    ports:
+      - "80:8000"
+    depends_on:
+      - user-service
+      - course-service
+      - analytics-service
+      - ai-tutor-service
+      - learning-portal
+    networks:
+      - learning-platform
+
   user-service:
     build: ./backend/user-service
     ports:
@@ -148,7 +161,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U learning_user -d learning_platform"]
+      test: [ "CMD-SHELL", "pg_isready -U learning_user -d learning_platform" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -167,7 +180,7 @@ services:
     volumes:
       - minio_data:/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
       interval: 30s
       timeout: 20s
       retries: 3
@@ -181,7 +194,7 @@ services:
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5

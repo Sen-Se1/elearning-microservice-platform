@@ -1,10 +1,11 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
-const USER_SERVICE_URL = process.env.NEXT_PUBLIC_USER_SERVICE_URL || 'http://localhost:8002/api/v1/users';
-const COURSE_SERVICE_URL = process.env.NEXT_PUBLIC_COURSE_SERVICE_URL || 'http://localhost:8001/api/v1';
-const ANALYTICS_SERVICE_URL = process.env.NEXT_PUBLIC_ANALYTICS_SERVICE_URL || 'http://localhost:8003';
-const AI_SERVICE_URL = process.env.NEXT_PUBLIC_AI_SERVICE_URL || 'http://localhost:8004/api/v1/tutor';
+
+const USER_SERVICE_URL = typeof window === 'undefined' ? (process.env.NEXT_PUBLIC_USER_SERVICE_URL || 'http://user-service:8002/api/v1/users') : '/api/v1/users';
+const COURSE_SERVICE_URL = typeof window === 'undefined' ? (process.env.NEXT_PUBLIC_COURSE_SERVICE_URL || 'http://course-service:8001/api/v1') : '/api/v1';
+const ANALYTICS_SERVICE_URL = typeof window === 'undefined' ? (process.env.NEXT_PUBLIC_ANALYTICS_SERVICE_URL || 'http://analytics-service:8003') : '';
+const AI_SERVICE_URL = typeof window === 'undefined' ? (process.env.NEXT_PUBLIC_AI_TUTOR_SERVICE_URL || 'http://ai-tutor-service:8004/api/v1/tutor') : '/api/v1/tutor';
 
 // Base axios instance with interceptors (for protected routes)
 const createInstance = (baseURL: string) => {

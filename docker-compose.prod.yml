@@ -1,0 +1,234 @@
+volumes:
+  mongo_data:
+  postgres_data:
+  minio_data:
+  redis_data:
+  course_data:
+  ollama_data:
+  n8n_data:
+
+networks:
+  learning-platform:
+    driver: bridge
+
+services:
+  api-gateway:
+    build: ./gateway
+    ports:
+      - "80:8000"
+    depends_on:
+      - user-service
+      - course-service
+      - analytics-service
+      - ai-tutor-service
+      - learning-portal
+    networks:
+      - learning-platform
+
+  user-service:
+    build: ./backend/user-service
+    # ports:
+    #   - "8002:8002"
+    environment:
+      - USER_BACKEND_ENV=development
+      - USER_BACKEND_PORT=8002
+      - MONGODB_URI=mongodb://mongo:27017/learning_platform
+      - JWT_SECRET_KEY=your-secret-key-change-in-production
+      - JWT_EXPIRE_TIME=199d
+      - JWT_ALGORITHM=HS256
+      - EMAIL_HOST=smtp.gmail.com
+      - EMAIL_PORT=465
+      - EMAIL_USER=houssemmbarki615@gmail.com
+      - EMAIL_PASSWORD=bdajydfdkkngywrs
+      - USER_BACKEND_URL=http://user-service:8002
+      - PUBLIC_FRONTEND_URL=http://learning-portal:3000
+      - APP_NAME=Learning Portal
+      - APP_VERSION=1.0.0
+    depends_on:
+      - mongo
+    networks:
+      - learning-platform
+
+  course-service:
+    build: ./backend/course-service
+    # ports:
+    #   - "8001:8001"
+    environment:
+      - COURSE_BACKEND_PORT=8001
+      - POSTGRES_URL=postgresql://learning_user:learning_password@postgres:5432/learning_platform
+      - JWT_SECRET_KEY=your-secret-key-change-in-production
+      - JWT_EXPIRE_TIME=199d
+      - JWT_ALGORITHM=HS256
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - APP_NAME=Learning Portal
+      - APP_VERSION=1.0.0
+      - DEBUG=${DEBUG:-false}
+      - ANALYTICS_SERVICE_URL=http://analytics-service:8003
+      - N8N_FEEDBACK_WEBHOOK_URL=http://n8n:5678/webhook-test/feedback
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    volumes:
+      - course_data:/app/src
+    networks:
+      - learning-platform
+
+  analytics-service:
+    build: ./backend/analytics-service
+    # ports:
+    #   - "8003:8003"
+    environment:
+      - APP_NAME=Learning Portal
+      - APP_VERSION=1.0.0
+      - LOG_LEVEL=INFO
+      - ANALYTICS_BACKEND_PORT=8003
+      - POSTGRES_URL=postgresql://learning_user:learning_password@postgres:5432/learning_platform
+      - JWT_SECRET_KEY=your-secret-key-change-in-production
+      - JWT_EXPIRE_TIME=199d
+      - JWT_ALGORITHM=HS256
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_TTL_SECONDS=60
+      - COURSE_BACKEND_URL=http://course-service:8001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - learning-platform
+
+  ai-tutor-service:
+    build: ./backend/ai-tutor-service
+    # ports:
+    #   - "8004:8004"
+    environment:
+      - APP_NAME=AI Tutor Service
+      - APP_VERSION=1.0.0
+      - DEBUG=true
+      - JWT_SECRET_KEY=your-secret-key-change-in-production
+      - JWT_ALGORITHM=HS256
+      - LLM_API_URL=http://ollama:11434/v1
+      - LLM_MODEL=llama3
+      - COURSE_SERVICE_URL=http://course-service:8001
+      - ANALYTICS_SERVICE_URL=http://analytics-service:8003
+    depends_on:
+      - ollama
+    networks:
+      - learning-platform
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - learning-platform
+
+  init-ollama:
+    image: curlimages/curl:latest
+    networks:
+      - learning-platform
+    depends_on:
+      - ollama
+    entrypoint: [ "sh", "-c", "sleep 5; curl -X POST http://ollama:11434/api/pull -d '{\"name\": \"llama3\"}'" ]
+
+  mongo:
+    image: mongo:7-jammy
+    # ports:
+    #   - "27018:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=learning_platform
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - learning-platform
+
+  postgres:
+    image: postgres:15-alpine
+    # ports:
+    #   - "5432:5432"
+    environment:
+      - POSTGRES_USER=learning_user
+      - POSTGRES_PASSWORD=learning_password
+      - POSTGRES_DB=learning_platform
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U learning_user -d learning_platform"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - learning-platform
+
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - learning-platform
+
+  redis:
+    image: redis:7-alpine
+    # ports:
+    #   - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - learning-platform
+
+  n8n:
+    image: n8nio/n8n:latest
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - WEBHOOK_URL=http://localhost:5678/
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - learning-platform
+
+  learning-portal:
+    build: ./learning-portal
+    # ports:
+    #   - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_USER_SERVICE_URL=http://user-service:8002
+      - NEXT_PUBLIC_COURSE_SERVICE_URL=http://course-service:8001
+      - NEXT_PUBLIC_ANALYTICS_SERVICE_URL=http://analytics-service:8003
+      - NEXT_PUBLIC_AI_TUTOR_SERVICE_URL=http://ai-tutor-service:8004
+    depends_on:
+      - user-service
+      - course-service
+      - analytics-service
+      - ai-tutor-service
+    networks:
+      - learning-platform
