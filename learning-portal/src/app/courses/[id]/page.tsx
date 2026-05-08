@@ -26,6 +26,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { useAuth } from '@/components/shared/AuthProvider';
+import { getMediaUrl } from '@/lib/utils';
 
 export default function CourseDetailPage() {
   const { id } = useParams();
@@ -164,7 +165,7 @@ export default function CourseDetailPage() {
           <div className="lg:sticky lg:top-32 h-fit">
             <Card className="glass border-white/20 p-2 overflow-hidden shadow-2xl">
                <div className="aspect-video relative rounded-xl overflow-hidden mb-6">
-                 <img src={course.thumbnail_url || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80'} alt="" className="w-full h-full object-cover" />
+                 <img src={getMediaUrl(course.thumbnail_url)} alt="" className="w-full h-full object-cover" />
                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                     <Button variant="ghost" size="icon" className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-md border border-white/30 hover:bg-white/40">
                       <Play className="w-8 h-8 text-white fill-current" />

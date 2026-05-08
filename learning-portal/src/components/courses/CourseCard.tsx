@@ -8,7 +8,7 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Star, Users, ArrowRight } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn, getMediaUrl } from '@/lib/utils';
 
 interface CourseCardProps {
   course: Course;
@@ -24,7 +24,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
         {/* Thumbnail */}
         <div className="relative aspect-video overflow-hidden">
           <img 
-            src={course.thumbnail_url || `https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80`} 
+            src={getMediaUrl(course.thumbnail_url)} 
             alt={course.title}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />

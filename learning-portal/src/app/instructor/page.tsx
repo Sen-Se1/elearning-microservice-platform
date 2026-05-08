@@ -9,7 +9,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
+import { cn, getMediaUrl } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -451,7 +451,7 @@ export default function InstructorPage() {
               <motion.div key={course.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                 className="glass rounded-2xl border border-white/5 p-6 flex flex-col md:flex-row md:items-center gap-4 group hover:border-indigo-500/20 transition-all">
                 <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-zinc-800">
-                  <img src={course.thumbnail_url || `https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=200&q=80`}
+                  <img src={getMediaUrl(course.thumbnail_url, 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=200&q=80')}
                     alt="" className="w-full h-full object-cover" />
                 </div>
                 <div className="flex-1 min-w-0">
