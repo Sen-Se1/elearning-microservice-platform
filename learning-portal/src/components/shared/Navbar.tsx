@@ -37,9 +37,20 @@ export const Navbar = () => {
 
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-8 text-sm font-medium">
+          <Link href="/" className="hover:text-indigo-400 transition-colors">Home</Link>
           <Link href="/courses" className="hover:text-indigo-400 transition-colors">Courses</Link>
-          <Link href="/instructors" className="hover:text-indigo-400 transition-colors">Instructors</Link>
-          <Link href="/pricing" className="hover:text-indigo-400 transition-colors">Pricing</Link>
+          {user && (
+            <>
+              <Link href="/dashboard" className="hover:text-indigo-400 transition-colors">
+                {user.role === 'instructor' ? 'Student View' : 'My Learning'}
+              </Link>
+              {user.role === 'instructor' && (
+                <Link href="/instructor" className="hover:text-indigo-400 transition-colors text-indigo-400">
+                  Instructor Studio
+                </Link>
+              )}
+            </>
+          )}
         </div>
 
         {/* Actions */}

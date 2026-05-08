@@ -6,7 +6,7 @@ const COURSE_SERVICE_URL = process.env.NEXT_PUBLIC_COURSE_SERVICE_URL || 'http:/
 const ANALYTICS_SERVICE_URL = process.env.NEXT_PUBLIC_ANALYTICS_SERVICE_URL || 'http://localhost:8003';
 const AI_SERVICE_URL = process.env.NEXT_PUBLIC_AI_SERVICE_URL || 'http://localhost:8004/api/v1/tutor';
 
-// Base axios instance with interceptors
+// Base axios instance with interceptors (for protected routes)
 const createInstance = (baseURL: string) => {
   const instance = axios.create({
     baseURL,
@@ -29,8 +29,22 @@ const createInstance = (baseURL: string) => {
   return instance;
 };
 
+// Public axios instance (for public routes like login/register/verify-email)
+const createPublicInstance = (baseURL: string) => {
+  return axios.create({
+    baseURL,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+};
+
 export const userApi = createInstance(USER_SERVICE_URL);
+export const userPublicApi = createPublicInstance(USER_SERVICE_URL);
+
 export const courseApi = createInstance(COURSE_SERVICE_URL);
+export const coursePublicApi = createPublicInstance(COURSE_SERVICE_URL);
+
 export const analyticsApi = createInstance(ANALYTICS_SERVICE_URL);
 export const aiApi = createInstance(AI_SERVICE_URL);
 

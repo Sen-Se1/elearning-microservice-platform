@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (token: string, userData: User) => void;
+  login: (token: string, userData: any, options?: { redirect?: string | null; message?: string | null }) => void;
   logout: () => void;
   checkAuth: () => Promise<void>;
 }
@@ -43,11 +43,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   };
 
-  const login = (token: string, userData: any) => {
+  const login = (token: string, userData: any, options?: { redirect?: string | null; message?: string | null }) => {
     Cookies.set('auth_token', token, { expires: 7 }); // 7 days
     setUser(normalizeUser(userData));
-    toast.success('Successfully logged in!');
-    router.push('/courses');
+    
+    // Use undefined/null check to allow skipping (explicit null)
+    if (options?.message !== null) {
+      toast.success(options?.message || 'Successfully logged in!');
+    }
+    
+    if (options?.redirect !== null) {
+      router.push(options?.redirect || '/courses');
+    }
   };
 
   const logout = () => {

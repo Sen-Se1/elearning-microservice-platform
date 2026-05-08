@@ -14,6 +14,7 @@ export interface User {
 }
 
 export interface Course {
+  total_enrollments: number | undefined;
   id: string;
   title: string;
   description: string;

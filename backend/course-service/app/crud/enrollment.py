@@ -183,7 +183,7 @@ class CRUDEnrollment:
     
     def get_user_stats(self, db: Session, user_id: str) -> Dict[str, Any]:
         """Get enrollment statistics for a user"""
-        from sqlalchemy import func
+        from sqlalchemy import func, case
         
         stats = db.query(
             func.count(Enrollment.id).label('total_enrollments'),

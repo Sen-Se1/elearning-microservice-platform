@@ -5,38 +5,54 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/components/shared/AuthProvider';
-import { userPublicApi } from '@/lib/api';
-import { BookOpen, CheckCircle2, XCircle, Loader2, ArrowRight } from 'lucide-react';
+import { userApi } from '@/lib/api';
+import { BookOpen, CheckCircle2, XCircle, Loader2, Mail, ArrowRight, ShieldCheck, LogIn } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
-export default function VerifyEmailPage() {
+export default function VerifyEmailUpdatePage() {
   const { token } = useParams();
   const router = useRouter();
   const { user, loading } = useAuth();
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'unauthorized'>('loading');
   const [errorMessage, setErrorMessage] = useState('');
-
-  React.useEffect(() => {
-    if (!loading && user) {
-      router.push('/courses');
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
     }
   }, [user, loading, router]);
 
   useEffect(() => {
     const verify = async () => {
       try {
-        const response = await userPublicApi.put(`/verify-email/${token}`);
+        await userApi.put(`/verify-email-update/${token}`);
         setStatus('success');
-        toast.success(response.data.message || 'Email verified successfully!');
+        toast.success('Email updated successfully!');
       } catch (error: any) {
-        setStatus('error');
-        setErrorMessage(error.response?.data?.message || 'Verification failed. The link may be invalid or expired.');
+        if (error.response?.status === 401) {
+          setStatus('unauthorized');
+        } else {
+          setStatus('error');
+          setErrorMessage(error.response?.data?.message || 'Verification failed. The link may be invalid or expired.');
+        }
       }
     };
-    if (token) verify();
-  }, [token]);
+    if (token && user) verify();
+  }, [token, user]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="relative w-20 h-20">
+          <div className="absolute inset-0 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin" />
+          <ShieldCheck className="w-8 h-8 text-indigo-500 absolute inset-0 m-auto" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden px-4">
@@ -73,12 +89,12 @@ export default function VerifyEmailPage() {
               <div className="relative w-24 h-24 mx-auto">
                 <div className="absolute inset-0 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin" />
                 <div className="absolute inset-4 rounded-full border-4 border-purple-500/10 border-b-purple-500 animate-spin-slow" />
-                <BookOpen className="w-10 h-10 text-indigo-400 absolute inset-0 m-auto" />
+                <ShieldCheck className="w-10 h-10 text-indigo-400 absolute inset-0 m-auto" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold font-outfit mb-3">Verifying your account</h1>
+                <h1 className="text-2xl font-bold font-outfit mb-3">Updating Your Security</h1>
                 <p className="text-muted-foreground leading-relaxed">
-                  We're confirming your email address. This will only take a second.
+                  We're finalizing your email change. This ensures your account remains secure.
                 </p>
               </div>
             </motion.div>
@@ -94,18 +110,45 @@ export default function VerifyEmailPage() {
                 <CheckCircle2 className="w-12 h-12 text-emerald-400" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold font-outfit mb-3 text-white">Email Verified!</h1>
-                <p className="text-muted-foreground mb-10 leading-relaxed">
-                  Welcome to the future of learning. Your account is now fully active and ready for exploration.
+                <h1 className="text-3xl font-bold font-outfit mb-3 text-white font-outfit">Email Updated!</h1>
+                <p className="text-muted-foreground mb-10 leading-relaxed text-sm">
+                  Your security update is complete. Please use your new email address for all future logins.
+                </p>
+                <Link 
+                  href="/profile" 
+                  className={cn(
+                    buttonVariants(), 
+                    'bg-indigo-600 hover:bg-indigo-700 w-full h-14 rounded-2xl shadow-xl shadow-indigo-500/25 transition-all hover:scale-[1.02] active:scale-[0.98] font-bold text-lg gap-2'
+                  )}
+                >
+                  Return to Profile <ArrowRight className="w-5 h-5" />
+                </Link>
+              </div>
+            </motion.div>
+          )}
+
+          {status === 'unauthorized' && (
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-8"
+            >
+              <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-amber-400/20 to-orange-400/20 flex items-center justify-center mx-auto shadow-[inset_0_0_20px_rgba(245,158,11,0.1)] border border-amber-500/20">
+                <LogIn className="w-12 h-12 text-amber-400" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold font-outfit mb-3 text-white font-outfit text-xl">Sign In Required</h1>
+                <p className="text-muted-foreground mb-10 leading-relaxed text-sm">
+                  For your security, you must be logged in to confirm an email change. Please sign in and try again.
                 </p>
                 <Link 
                   href="/login" 
                   className={cn(
                     buttonVariants(), 
-                    'bg-indigo-600 hover:bg-indigo-700 w-full h-14 rounded-2xl shadow-xl shadow-indigo-500/25 transition-all hover:scale-[1.02] active:scale-[0.98] font-semibold text-lg gap-2'
+                    'bg-amber-600 hover:bg-amber-700 w-full h-14 rounded-2xl shadow-xl shadow-amber-500/25 transition-all hover:scale-[1.02] active:scale-[0.98] font-bold text-lg'
                   )}
                 >
-                  Get Started <ArrowRight className="w-5 h-5" />
+                  Go to Sign In
                 </Link>
               </div>
             </motion.div>
@@ -121,29 +164,20 @@ export default function VerifyEmailPage() {
                 <XCircle className="w-12 h-12 text-rose-400" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold font-outfit mb-3 text-white font-outfit">Link Expired</h1>
+                <h1 className="text-3xl font-bold font-outfit mb-3 text-white font-outfit">Verification Error</h1>
                 <p className="text-muted-foreground mb-10 leading-relaxed text-sm">
                   {errorMessage}
                 </p>
                 
                 <div className="flex flex-col gap-4">
                   <Link 
-                    href="/resend-verification"
+                    href="/profile"
                     className={cn(
                       buttonVariants({ variant: 'outline' }), 
                       'border-white/10 w-full h-14 rounded-2xl hover:bg-white/5 transition-all font-medium text-lg'
                     )}
                   >
-                    Resend Verification Link
-                  </Link>
-                  <Link 
-                    href="/login" 
-                    className={cn(
-                      buttonVariants({ variant: 'ghost' }), 
-                      'w-full h-12 text-muted-foreground hover:text-white transition-colors'
-                    )}
-                  >
-                    Back to Sign In
+                    Back to Profile
                   </Link>
                 </div>
               </div>

@@ -51,7 +51,7 @@ type EmailUpdateForm = z.infer<typeof emailUpdateSchema>;
 type Tab = 'profile' | 'security' | 'email';
 
 export default function ProfilePage() {
-  const { user, logout } = useAuth();
+  const { user, logout, login, loading } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('profile');
   const [profileData, setProfileData] = useState<any>(null);
@@ -63,31 +63,50 @@ export default function ProfilePage() {
   const emailForm = useForm<EmailUpdateForm>({ resolver: zodResolver(emailUpdateSchema) });
 
   useEffect(() => {
-    if (!user) { router.push('/login'); return; }
-    const fetchProfile = async () => {
-      try {
-        const res = await userApi.get('/me');
-        const d = res.data.data || res.data;
-        setProfileData(d);
-        profileForm.reset({
-          firstName: d.profile?.firstName || d.firstName || '',
-          lastName: d.profile?.lastName || d.lastName || '',
-          phone: d.profile?.phone || d.phone || '',
-          dateOfBirth: d.profile?.dateOfBirth?.split('T')[0] || d.dateOfBirth?.split('T')[0] || '',
-          street: d.address?.street || d.street || '',
-          city: d.address?.city || d.city || '',
-          state: d.address?.state || d.state || '',
-          country: d.address?.country || d.country || '',
-          zipCode: d.address?.zipCode || d.zipCode || '',
-        });
-      } catch {
-        toast.error('Failed to load profile');
-      } finally {
-        setLoadingProfile(false);
-      }
-    };
-    fetchProfile();
-  }, [user, router]);
+    if (!loading && !user) { 
+      router.push('/login'); 
+      return; 
+    }
+    
+    if (user) {
+      const fetchProfile = async () => {
+        try {
+          const res = await userApi.get('/me');
+          const d = res.data.data || res.data;
+          setProfileData(d);
+          profileForm.reset({
+            firstName: d.profile?.firstName || d.firstName || '',
+            lastName: d.profile?.lastName || d.lastName || '',
+            phone: d.profile?.phone || d.phone || '',
+            dateOfBirth: d.profile?.dateOfBirth?.split('T')[0] || d.dateOfBirth?.split('T')[0] || '',
+            street: d.address?.street || d.street || '',
+            city: d.address?.city || d.city || '',
+            state: d.address?.state || d.state || '',
+            country: d.address?.country || d.country || '',
+            zipCode: d.address?.zipCode || d.zipCode || '',
+          });
+        } catch {
+          toast.error('Failed to load profile');
+        } finally {
+          setLoadingProfile(false);
+        }
+      };
+      fetchProfile();
+    }
+  }, [user, loading, router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="relative w-20 h-20">
+          <div className="absolute inset-0 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin" />
+          <User className="w-8 h-8 text-indigo-500 absolute inset-0 m-auto" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
 
   const onSaveProfile = async (data: ProfileForm) => {
     setSaving(true);
@@ -104,8 +123,15 @@ export default function ProfilePage() {
   const onChangePassword = async (data: PasswordForm) => {
     setSaving(true);
     try {
-      await userApi.put('/update-my-password', data);
-      toast.success('Password changed successfully!');
+      const response = await userApi.put('/update-my-password', data);
+      const { token, data: userData } = response.data;
+      
+      // Update token and state without redirecting or showing the default login toast
+      login(token, userData, { 
+        redirect: null, 
+        message: 'Password updated successfully and session refreshed!' 
+      });
+      
       passwordForm.reset();
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'Password change failed');

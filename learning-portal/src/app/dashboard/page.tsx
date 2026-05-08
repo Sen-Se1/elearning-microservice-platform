@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
 import {
   BookOpen, Clock, TrendingUp, Award, PlayCircle,
-  ArrowRight, BarChart2, CheckCircle2, Sparkles
+  ArrowRight, BarChart2, CheckCircle2, Sparkles, Eye, Users
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -27,22 +27,48 @@ interface Enrollment {
 }
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [topCourses, setTopCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) { router.push('/login'); return; }
+    if (authLoading) return;
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+
     const fetchData = async () => {
       try {
         const [enrollRes, topRes] = await Promise.all([
           courseApi.get('/enrollments/me'),
           analyticsApi.get('/metrics/top-courses?limit=5').catch(() => ({ data: [] })),
         ]);
-        setEnrollments(enrollRes.data.items || enrollRes.data || []);
-        setTopCourses(topRes.data.items || topRes.data || []);
+        
+        const enrollmentData = enrollRes.data.items || enrollRes.data || [];
+        setEnrollments(enrollmentData);
+
+        // Enrich top courses with titles
+        let rawTop = topRes.data.items || topRes.data || [];
+        // Filter out zero-UUID if it exists
+        rawTop = rawTop.filter((c: any) => c.course_id !== '00000000-0000-0000-0000-000000000000');
+
+        try {
+          const coursesRes = await courseApi.get('/courses/');
+          const allCourses = coursesRes.data.items || coursesRes.data || [];
+          const enrichedTop = rawTop.map((topItem: any) => {
+            const course = allCourses.find((ac: any) => ac.id === topItem.course_id);
+            return {
+              ...topItem,
+              title: course?.title || `Course ${topItem.course_id.slice(0, 5)}...`
+            };
+          });
+          setTopCourses(enrichedTop);
+        } catch (e) {
+          setTopCourses(rawTop);
+        }
       } catch (err) {
         console.error('Dashboard fetch error:', err);
       } finally {
@@ -50,7 +76,13 @@ export default function DashboardPage() {
       }
     };
     fetchData();
-  }, [user, router]);
+  }, [user, authLoading, router]);
+
+  if (authLoading) return <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+  </div>;
+
+  if (!user) return null;
 
   const completedCount = enrollments.filter(e => e.completed).length;
   const inProgressCount = enrollments.filter(e => !e.completed).length;
@@ -176,15 +208,24 @@ export default function DashboardPage() {
               {topCourses.length === 0 ? (
                 <p className="text-muted-foreground text-sm">No data available yet.</p>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {topCourses.slice(0, 5).map((c, i) => (
-                    <div key={c.course_id || i} className="flex items-center gap-3">
-                      <span className="text-2xl font-bold text-white/10 font-outfit w-7">{i + 1}</span>
+                    <Link key={c.course_id || i} href={`/courses/${c.course_id}`} className="flex items-center gap-4 group">
+                      <span className="text-2xl font-bold text-white/10 font-outfit w-7 group-hover:text-indigo-500/30 transition-colors">{i + 1}</span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{c.title || `Course ${i + 1}`}</p>
-                        <p className="text-[10px] text-muted-foreground">{c.total_views || 0} views</p>
+                        <p className="text-sm font-bold truncate group-hover:text-indigo-400 transition-colors">
+                          {c.course_name || c.title || `Course ${c.course_id?.slice(0, 5)}...`}
+                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                           <span className="text-[10px] text-muted-foreground uppercase flex items-center gap-1">
+                              <Eye className="w-2 h-2" /> {c.total_views || 0} views
+                           </span>
+                           <span className="text-[10px] text-emerald-500 uppercase flex items-center gap-1">
+                              <Users className="w-2 h-2" /> Hot
+                           </span>
+                        </div>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               )}
@@ -197,23 +238,6 @@ export default function DashboardPage() {
               <Link href="/ai-tutor" className={cn(buttonVariants(), 'w-full bg-indigo-600 hover:bg-indigo-700')}>
                 Open AI Tutor
               </Link>
-            </div>
-
-            <div className="glass rounded-2xl border border-white/5 p-6">
-              <h3 className="font-bold font-outfit mb-4 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-muted-foreground" /> Quick Links
-              </h3>
-              <div className="space-y-2">
-                <Link href="/profile" className="flex items-center justify-between text-sm py-2 hover:text-indigo-400 transition-colors">
-                  My Profile <ArrowRight className="w-4 h-4" />
-                </Link>
-                <Link href="/courses" className="flex items-center justify-between text-sm py-2 hover:text-indigo-400 transition-colors">
-                  Browse Courses <ArrowRight className="w-4 h-4" />
-                </Link>
-                <Link href="/instructor" className="flex items-center justify-between text-sm py-2 hover:text-indigo-400 transition-colors">
-                  Instructor Panel <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
             </div>
           </div>
         </div>

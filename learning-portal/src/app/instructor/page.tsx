@@ -37,7 +37,7 @@ type CourseFormData = z.infer<typeof courseFormSchema>;
 const CATEGORIES = ['Development', 'Design', 'Business', 'Marketing', 'Photography', 'Music', 'Data Science', 'IT & Software'];
 
 export default function InstructorPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +45,10 @@ export default function InstructorPage() {
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [enrollmentStats, setEnrollmentStats] = useState<Record<string, number>>({});
+  const [showMetricsModal, setShowMetricsModal] = useState(false);
+  const [selectedCourseMetrics, setSelectedCourseMetrics] = useState<any[]>([]);
+  const [loadingMetrics, setLoadingMetrics] = useState(false);
+  const [activeMetricCourse, setActiveMetricCourse] = useState<Course | null>(null);
 
   const form = useForm<CourseFormData>({
     resolver: zodResolver(courseFormSchema),
@@ -53,9 +56,25 @@ export default function InstructorPage() {
   });
 
   useEffect(() => {
-    if (!user) { router.push('/login'); return; }
+    if (authLoading) return;
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    if (user.role !== 'instructor') {
+      router.push('/dashboard');
+      return;
+    }
     fetchMyCourses();
-  }, [user, router]);
+  }, [user, authLoading, router]);
+
+  if (authLoading) return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+    </div>
+  );
+
+  if (!user || user.role !== 'instructor') return null;
 
   const fetchMyCourses = async () => {
     setLoading(true);
@@ -116,6 +135,21 @@ export default function InstructorPage() {
       toast.error(e.response?.data?.detail || 'Operation failed');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const fetchCourseMetrics = async (course: Course) => {
+    setActiveMetricCourse(course);
+    setShowMetricsModal(true);
+    setLoadingMetrics(true);
+    try {
+      const res = await analyticsApi.get(`/metrics/course/${course.id}`);
+      setSelectedCourseMetrics(res.data || []);
+    } catch (error) {
+      toast.error('Failed to load metrics');
+      setSelectedCourseMetrics([]);
+    } finally {
+      setLoadingMetrics(false);
     }
   };
 
@@ -216,6 +250,9 @@ export default function InstructorPage() {
                     className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'text-muted-foreground hover:text-white')}>
                     <Eye className="w-4 h-4" />
                   </Link>
+                  <Button variant="ghost" size="sm" onClick={() => fetchCourseMetrics(course)} className="text-purple-400 hover:text-purple-300">
+                    <BarChart2 className="w-4 h-4" />
+                  </Button>
                   <Button variant="ghost" size="sm" onClick={() => openEdit(course)} className="text-indigo-400 hover:text-indigo-300">
                     <Edit2 className="w-4 h-4" />
                   </Button>
@@ -230,6 +267,81 @@ export default function InstructorPage() {
           </div>
         )}
       </div>
+
+      {/* Metrics Modal */}
+      <AnimatePresence>
+        {showMetricsModal && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50" onClick={() => setShowMetricsModal(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: 'spring', damping: 25 }}
+              className="fixed inset-x-4 top-[15%] bottom-[15%] md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-[600px] bg-zinc-900 border border-white/10 rounded-3xl z-50 flex flex-col overflow-hidden shadow-2xl">
+              <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                   <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
+                      <BarChart2 className="w-5 h-5 text-purple-400" />
+                   </div>
+                   <div>
+                     <h2 className="text-xl font-bold font-outfit">Course Performance</h2>
+                     <p className="text-xs text-muted-foreground">{activeMetricCourse?.title}</p>
+                   </div>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setShowMetricsModal(false)}><X className="w-5 h-5" /></Button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-6">
+                {loadingMetrics ? (
+                   <div className="py-20 flex flex-col items-center justify-center gap-4">
+                      <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
+                      <p className="text-sm text-muted-foreground">Loading performance data...</p>
+                   </div>
+                ) : selectedCourseMetrics.length === 0 ? (
+                  <div className="py-20 text-center opacity-40">
+                    <TrendingUp className="w-12 h-12 mx-auto mb-4" />
+                    <p>No activity recorded yet for this course.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                     <div className="grid grid-cols-2 gap-4 mb-8">
+                        <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
+                           <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Total Views</p>
+                           <p className="text-2xl font-bold font-outfit">{selectedCourseMetrics.reduce((s, m) => s + (m.views || 0), 0)}</p>
+                        </div>
+                        <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
+                           <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Total Enrollments</p>
+                           <p className="text-2xl font-bold font-outfit text-indigo-400">{selectedCourseMetrics.reduce((s, m) => s + (m.enrollments || 0), 0)}</p>
+                        </div>
+                     </div>
+                     
+                     <h4 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-4">Daily Breakdown</h4>
+                     <div className="space-y-2">
+                        {selectedCourseMetrics.map((m, i) => (
+                           <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+                              <div className="font-medium text-sm">{m.date}</div>
+                              <div className="flex items-center gap-6">
+                                 <div className="text-right">
+                                    <p className="text-[10px] text-muted-foreground uppercase">Views</p>
+                                    <p className="font-bold">{m.views || 0}</p>
+                                 </div>
+                                 <div className="text-right">
+                                    <p className="text-[10px] text-muted-foreground uppercase">Enrolls</p>
+                                    <p className="font-bold text-indigo-400">{m.enrollments || 0}</p>
+                                 </div>
+                              </div>
+                           </div>
+                        ))}
+                     </div>
+                  </div>
+                )}
+              </div>
+              <div className="p-6 border-t border-white/5 flex justify-end">
+                <Button className="bg-indigo-600" onClick={() => setShowMetricsModal(false)}>Close</Button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Create/Edit Modal */}
       <AnimatePresence>

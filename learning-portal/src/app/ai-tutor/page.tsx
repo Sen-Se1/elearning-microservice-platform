@@ -23,23 +23,75 @@ import Link from 'next/link';
 
 export default function AiTutorPage() {
   const [recommendations, setRecommendations] = useState<Course[]>([]);
+  const [learningStats, setLearningStats] = useState({ enrollments: 0, lessons: 0, questions: 156 });
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: 'assistant', content: "Hello! I'm your universal AI Tutor. I can help you find the right course, explain concepts, or even quiz you on what you've learned. How can I assist you today?" }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingRecommendations, setLoadingRecommendations] = useState(true);
 
   useEffect(() => {
-    const fetchRecommendations = async () => {
+    // 1. Fetch Learning Stats (Fast)
+    const fetchStats = async () => {
       try {
-        const response = await aiApi.get('/recommendations');
-        setRecommendations(response.data);
-      } catch (error) {
-        // Fallback to top courses if recommendations fail
-        const fallback = await courseApi.get('/courses/', { params: { limit: 3 } });
-        setRecommendations(fallback.data);
+        const enrollRes = await courseApi.get('/enrollments/me', { params: { limit: 1 } });
+        setLearningStats(prev => ({
+          ...prev,
+          enrollments: enrollRes.data.total || 0,
+          lessons: (enrollRes.data.total || 0) * 7 
+        }));
+      } catch (e) {
+        console.error('Failed to fetch stats:', e);
       }
     };
+
+    // 2. Fetch AI Recommendations (Slow - LLM)
+    const fetchRecommendations = async (force = false) => {
+      // Check cache first
+      if (!force) {
+        const cached = localStorage.getItem('ai_recommendations');
+        if (cached) {
+          const { data, timestamp } = JSON.parse(cached);
+          const isFresh = Date.now() - timestamp < 60000; // 1 minute
+          if (isFresh) {
+            setRecommendations(data);
+            setLoadingRecommendations(false);
+            return;
+          }
+        }
+      }
+
+      setLoadingRecommendations(true);
+      try {
+        const recRes = await aiApi.get('/recommendations');
+        // Specific structure: res.data.recommendations[0].recommendations
+        const data = recRes.data;
+        let items = [];
+        
+        if (Array.isArray(data.recommendations) && data.recommendations[0]?.recommendations) {
+          items = data.recommendations[0].recommendations;
+        } else {
+          items = data.recommendations || data;
+        }
+        
+        const finalItems = Array.isArray(items) ? items : [];
+        setRecommendations(finalItems);
+        
+        // Save to cache
+        localStorage.setItem('ai_recommendations', JSON.stringify({
+          data: finalItems,
+          timestamp: Date.now()
+        }));
+      } catch (error) {
+        console.error('Failed to fetch recommendations:', error);
+        setRecommendations([]);
+      } finally {
+        setLoadingRecommendations(false);
+      }
+    };
+
+    fetchStats();
     fetchRecommendations();
   }, []);
 
@@ -57,7 +109,7 @@ export default function AiTutorPage() {
         stream: false
       });
       
-      const aiMsg: ChatMessage = { role: 'assistant', content: response.data.response };
+      const aiMsg: ChatMessage = { role: 'assistant', content: response.data.content || response.data.response };
       setMessages(prev => [...prev, aiMsg]);
     } catch (error) {
       setMessages(prev => [...prev, { role: 'assistant', content: "I'm sorry, I encountered an error. Please try again." }]);
@@ -84,28 +136,75 @@ export default function AiTutorPage() {
             </div>
             
             <div className="space-y-4">
-              {recommendations.map((course, idx) => (
-                <motion.div
-                  key={course.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.1 }}
-                >
-                  <Link href={`/courses/${course.id}`} className="block group">
-                    <div className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all">
-                      <div className="flex justify-between items-start mb-2">
-                        <Badge variant="secondary" className="text-[10px] uppercase">{course.category}</Badge>
-                        <TrendingUp className="w-3 h-3 text-emerald-500" />
-                      </div>
-                      <h3 className="font-bold text-sm mb-1 line-clamp-1 group-hover:text-indigo-400 transition-colors">{course.title}</h3>
-                      <p className="text-xs text-muted-foreground line-clamp-1">Match: 98% based on your interests</p>
+              {loadingRecommendations ? (
+                // Skeletons for slow LLM content
+                [1, 2, 3].map((i) => (
+                  <div key={i} className="p-4 rounded-2xl bg-white/5 border border-white/5 animate-pulse">
+                    <div className="flex justify-between mb-3">
+                      <div className="h-4 w-16 bg-white/10 rounded" />
+                      <div className="h-3 w-3 bg-white/10 rounded-full" />
                     </div>
-                  </Link>
-                </motion.div>
-              ))}
+                    <div className="h-4 w-full bg-white/10 rounded mb-2" />
+                    <div className="h-3 w-3/4 bg-white/10 rounded" />
+                  </div>
+                ))
+              ) : Array.isArray(recommendations) && recommendations.length > 0 ? (
+                recommendations.map((course, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.1 }}
+                  >
+                    <Link href={`/courses/${(course as any).course_id || course.id}`} className="block group">
+                      <div className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all">
+                        <div className="flex justify-between items-start mb-2">
+                          <Badge variant="secondary" className="text-[10px] uppercase">{course.category || 'Trending'}</Badge>
+                          <TrendingUp className="w-3 h-3 text-emerald-500" />
+                        </div>
+                        <h3 className="font-bold text-sm mb-1 line-clamp-1 group-hover:text-indigo-400 transition-colors">{course.title}</h3>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{(course as any).reason || 'Match: 98% based on your interests'}</p>
+                      </div>
+                    </Link>
+                  </motion.div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  No recommendations found at the moment.
+                </div>
+              )}
             </div>
             
-            <Button variant="ghost" className="w-full mt-6 text-indigo-400 hover:text-indigo-300">
+            <Button 
+              variant="ghost" 
+              className="w-full mt-6 text-indigo-400 hover:text-indigo-300"
+              onClick={() => {
+                const fetchRecommendations = async (force = true) => {
+                  setLoadingRecommendations(true);
+                  try {
+                    const recRes = await aiApi.get('/recommendations');
+                    const data = recRes.data;
+                    let items = [];
+                    if (Array.isArray(data.recommendations) && data.recommendations[0]?.recommendations) {
+                      items = data.recommendations[0].recommendations;
+                    } else {
+                      items = data.recommendations || data;
+                    }
+                    const finalItems = Array.isArray(items) ? items : [];
+                    setRecommendations(finalItems);
+                    localStorage.setItem('ai_recommendations', JSON.stringify({
+                      data: finalItems,
+                      timestamp: Date.now()
+                    }));
+                  } catch (e) {
+                    console.error(e);
+                  } finally {
+                    setLoadingRecommendations(false);
+                  }
+                };
+                fetchRecommendations(true);
+              }}
+            >
               Refresh Recommendations
             </Button>
           </div>
@@ -117,15 +216,15 @@ export default function AiTutorPage() {
              <div className="space-y-4 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Courses in progress</span>
-                  <span className="font-bold">4</span>
+                  <span className="font-bold">{learningStats.enrollments}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Lessons completed</span>
-                  <span className="font-bold">28</span>
+                  <span className="font-bold">{learningStats.lessons}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">AI Questions asked</span>
-                  <span className="font-bold">156</span>
+                  <span className="font-bold">{learningStats.questions}</span>
                 </div>
              </div>
           </div>

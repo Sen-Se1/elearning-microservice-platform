@@ -20,7 +20,8 @@ import {
   ChevronRight,
   FileText,
   Send,
-  Loader2
+  Loader2,
+  PlayCircle
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
@@ -47,11 +48,9 @@ export default function CourseDetailPage() {
           courseApi.get(`/feedback/course/${id}`).catch(() => ({ data: [] })),
         ]);
         setCourse(courseRes.data);
-        setLessons(lessonsRes.data.sort((a: any, b: any) => a.order_index - b.order_index));
+        const lessonItems = lessonsRes.data.items || lessonsRes.data;
+        setLessons(lessonItems.sort((a: any, b: any) => a.order_index - b.order_index));
         setFeedbacks(feedbackRes.data || []);
-        
-        // Record view
-        analyticsApi.post('/events/view', { course_id: id });
       } catch (error) {
         console.error('Failed to fetch course:', error);
       } finally {
@@ -84,10 +83,9 @@ export default function CourseDetailPage() {
   const handleEnroll = async () => {
     try {
       await courseApi.post('/enrollments/', { course_id: id });
-      analyticsApi.post('/events/enroll', { course_id: id });
       toast.success('Successfully enrolled!');
       if (lessons.length > 0) {
-        router.push(`/lessons/${lessons[0].id}`);
+        router.push(`/courses/${id}/lessons/${lessons[0].id}`);
       }
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Failed to enroll. Please login first.');
@@ -126,12 +124,12 @@ export default function CourseDetailPage() {
                 <div className="flex text-yellow-500">
                   <Star className="w-5 h-5 fill-current" />
                 </div>
-                <span className="font-bold text-lg">4.8</span>
-                <span className="text-muted-foreground text-sm">(2,450 reviews)</span>
+                <span className="font-bold text-lg">{course.rating || 4.8}</span>
+                <span className="text-muted-foreground text-sm">({feedbacks.length || 2450} reviews)</span>
               </div>
               <div className="flex items-center gap-2">
                 <Users className="w-5 h-5 text-indigo-400" />
-                <span className="font-bold">{course.enrollment_count || 12000}+ students</span>
+                <span className="font-bold">{course.total_enrollments || course.enrollment_count || 12000}+ students</span>
               </div>
               <div className="flex items-center gap-2">
                 <Globe className="w-5 h-5 text-indigo-400" />
@@ -196,11 +194,15 @@ export default function CourseDetailPage() {
       </section>
 
       {/* Syllabus Section */}
-      <section className="py-24 container mx-auto px-4 max-w-4xl">
+      <section className="py-24 container mx-auto px-4 max-w-4xl border-b border-white/5">
         <h2 className="text-3xl font-bold font-outfit mb-12">Course Curriculum</h2>
         <div className="space-y-4">
           {lessons.map((lesson, idx) => (
-            <div key={lesson.id} className="p-6 rounded-2xl bg-white/5 border border-white/5 hover:border-indigo-500/30 transition-all flex items-center justify-between group">
+            <div 
+              key={lesson.id} 
+              className="p-6 rounded-2xl bg-white/5 border border-white/5 hover:border-indigo-500/30 transition-all flex items-center justify-between group cursor-pointer"
+              onClick={() => router.push(`/courses/${id}/lessons/${lesson.id}`)}
+            >
                <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center font-bold text-sm text-muted-foreground group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                     {idx + 1}
@@ -208,15 +210,17 @@ export default function CourseDetailPage() {
                   <div>
                     <h4 className="font-bold">{lesson.title}</h4>
                     <p className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
-                       {lesson.content_type === 'video' ? <Play className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
+                       {lesson.content_type === 'video' ? <PlayCircle className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
                        {lesson.duration_minutes} minutes
                     </p>
                   </div>
                </div>
-               {lesson.is_preview && (
+               {lesson.is_preview ? (
                  <Button variant="ghost" className="text-indigo-400 gap-2">
                     Preview <ChevronRight className="w-4 h-4" />
                  </Button>
+               ) : (
+                 <PlayCircle className="w-5 h-5 text-muted-foreground group-hover:text-indigo-400 transition-colors" />
                )}
             </div>
           ))}
@@ -225,7 +229,21 @@ export default function CourseDetailPage() {
 
       {/* Reviews Section */}
       <section className="py-16 container mx-auto px-4 max-w-4xl">
-        <h2 className="text-3xl font-bold font-outfit mb-10">Student Reviews</h2>
+        <div className="flex items-center justify-between mb-10">
+          <h2 className="text-3xl font-bold font-outfit">Student Reviews</h2>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/10 gap-2"
+            onClick={async () => {
+              const res = await courseApi.get(`/feedback/course/${id}`);
+              setFeedbacks(res.data || []);
+              toast.success('Reviews updated!');
+            }}
+          >
+            <MessageSquare className="w-4 h-4" /> Get Latest Feedback
+          </Button>
+        </div>
 
         {/* Submit Review */}
         {user ? (
