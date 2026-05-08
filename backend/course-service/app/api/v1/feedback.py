@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
 from ...database import get_db
-from ...schemas.feedback import FeedbackCreate, FeedbackResponse
+from ...schemas.feedback import FeedbackCreate, FeedbackResponse, FeedbackUpdate
 from ...crud import feedback as crud_feedback
 from ...core.auth import get_current_user
 
@@ -33,3 +33,15 @@ async def create_feedback(
 @router.get("/course/{course_id}", response_model=List[FeedbackResponse])
 def get_course_feedbacks(course_id: str, db: Session = Depends(get_db)):
     return crud_feedback.get_course_feedbacks(db, course_id)
+
+@router.patch("/{feedback_id}", response_model=FeedbackResponse)
+def update_feedback_analysis(
+    feedback_id: str,
+    update_data: FeedbackUpdate,
+    db: Session = Depends(get_db)
+):
+    print(f"Updating feedback {feedback_id} with AI summary: {update_data.ai_summary}")
+    feedback = crud_feedback.update_feedback_analysis(db, feedback_id, update_data.ai_summary)
+    if not feedback:
+        raise HTTPException(status_code=404, detail="Feedback not found")
+    return feedback

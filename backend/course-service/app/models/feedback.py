@@ -11,5 +11,6 @@ class Feedback(BaseModel):
     user_id = Column(String(36), nullable=False)
     rating = Column(Integer, nullable=False)
     comment = Column(Text, nullable=True)
+    ai_summary = Column(Text, nullable=True)
 
     course = relationship("Course", back_populates="feedbacks")

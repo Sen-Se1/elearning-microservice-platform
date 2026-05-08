@@ -28,3 +28,11 @@ def create_feedback(db: Session, feedback_in: FeedbackCreate, user_id: str):
 
 def get_course_feedbacks(db: Session, course_id: str):
     return db.query(Feedback).filter(Feedback.course_id == course_id).all()
+
+def update_feedback_analysis(db: Session, feedback_id: str, ai_summary: str):
+    db_feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
+    if db_feedback:
+        db_feedback.ai_summary = ai_summary
+        db.commit()
+        db.refresh(db_feedback)
+    return db_feedback

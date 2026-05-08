@@ -11,9 +11,13 @@ class FeedbackBase(BaseModel):
 class FeedbackCreate(FeedbackBase):
     pass
 
+class FeedbackUpdate(BaseModel):
+    ai_summary: str
+
 class FeedbackResponse(FeedbackBase):
     id: UUID
     user_id: str
+    ai_summary: Optional[str] = None
     created_at: datetime
 
     class Config:

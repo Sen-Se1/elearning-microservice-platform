@@ -1,0 +1,98 @@
+{
+  "name": "Full Feedback Automation Loop (Production)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "feedback",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "url": "=http://course-service:8001/api/v1/courses/{{ $json.body.course_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-Service",
+              "value": "ai-tutor-service"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "enrich-course",
+      "name": "Enrich Course Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [300, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/generate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"model\": \"llama3\",\n  \"prompt\": \"Analyze feedback for '{{ $node[\\\"Enrich Course Data\\\"].json.title }}':\\n{{ $node[\\\"Webhook\\\"].json.body.comment }}\",\n  \"stream\": false\n}",
+        "options": {}
+      },
+      "id": "ai-analysis",
+      "name": "AI Analysis (Ollama)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=http://course-service:8001/api/v1/feedback/{{ $('Webhook').item.json.body.id }}",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "ai_summary",
+              "value": "={{ $json.response }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "storage-db",
+      "name": "Storage (Update DB)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://webhook.site/your-notification-url",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"text\": \"New feedback analyzed for course: {{ $node[\\\"Enrich Course Data\\\"].json.title }}\\n\\nAI Summary: {{ $node[\\\"AI Analysis (Ollama)\\\"].json.response }}\"\n}",
+        "options": {}
+      },
+      "id": "notification",
+      "name": "Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Enrich Course Data", "type": "main", "index": 0 }]] },
+    "Enrich Course Data": { "main": [[{ "node": "AI Analysis (Ollama)", "type": "main", "index": 0 }]] },
+    "AI Analysis (Ollama)": { "main": [[{ "node": "Storage (Update DB)", "type": "main", "index": 0 }]] },
+    "Storage (Update DB)": { "main": [[{ "node": "Notification", "type": "main", "index": 0 }]] }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" }
+}
