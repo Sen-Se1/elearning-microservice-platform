@@ -6,7 +6,7 @@ import logging
 
 from .core.config import get_settings
 from .database import create_tables, engine
-from .api.v1 import courses, lessons, enrollments
+from .api.v1 import courses, lessons, enrollments, feedback
 from .api.dependencies import get_database
 
 # Configure logging
@@ -87,6 +87,12 @@ app.include_router(
     enrollments.router,
     prefix="/api/v1/enrollments",
     tags=["Enrollments"]
+)
+
+app.include_router(
+    feedback.router,
+    prefix="/api/v1/feedback",
+    tags=["Feedback"]
 )
 
 # Error handlers

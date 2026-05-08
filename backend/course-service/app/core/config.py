@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     # Analytics Service
     analytics_service_url: str = Field(default="http://analytics-service:8003", validation_alias="ANALYTICS_SERVICE_URL")
     
+    # n8n Automation
+    n8n_webhook_url: str = Field(default="http://n8n:5678/webhook-test/feedback", validation_alias="N8N_FEEDBACK_WEBHOOK_URL")
+    
     class Config:
         env_file = "../../.env"
         case_sensitive = False  # This allows case-insensitive matching
