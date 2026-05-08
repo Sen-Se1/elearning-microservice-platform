@@ -5,6 +5,7 @@ from ...database import get_db
 from ...schemas.feedback import FeedbackCreate, FeedbackResponse, FeedbackUpdate
 from ...crud import feedback as crud_feedback
 from ...core.auth import get_current_user
+from ...crud import enrollment as crud_enrollment
 
 router = APIRouter()
 
@@ -15,6 +16,23 @@ async def create_feedback(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
+    # Check if user is an instructor (only students can leave feedback)
+    if current_user.get("role") == "instructor":
+        raise HTTPException(status_code=403, detail="Instructors cannot leave feedback on courses")
+
+    # Check if user is enrolled in the course
+    is_enrolled = crud_enrollment.enrollment.get_by_user_and_course(
+        db, 
+        user_id=current_user["user_id"], 
+        course_id=feedback_in.course_id
+    )
+    
+    if not is_enrolled:
+        raise HTTPException(
+            status_code=403, 
+            detail="You must be enrolled in this course to leave feedback"
+        )
+
     feedback = crud_feedback.create_feedback(db, feedback_in, current_user["user_id"])
     
     # Trigger n8n in background

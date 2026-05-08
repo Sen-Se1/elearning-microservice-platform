@@ -39,6 +39,10 @@ export default function DashboardPage() {
       router.push('/login');
       return;
     }
+    if (user.role === 'instructor') {
+      router.push('/instructor');
+      return;
+    }
 
     const fetchData = async () => {
       try {

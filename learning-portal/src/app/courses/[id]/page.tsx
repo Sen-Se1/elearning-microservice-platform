@@ -37,6 +37,8 @@ export default function CourseDetailPage() {
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
   const [myRating, setMyRating] = useState(5);
   const [myComment, setMyComment] = useState('');
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [checkingEnrollment, setCheckingEnrollment] = useState(false);
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
 
   useEffect(() => {
@@ -51,6 +53,19 @@ export default function CourseDetailPage() {
         const lessonItems = lessonsRes.data.items || lessonsRes.data;
         setLessons(lessonItems.sort((a: any, b: any) => a.order_index - b.order_index));
         setFeedbacks(feedbackRes.data || []);
+
+        if (user && user.role !== 'instructor') {
+          setCheckingEnrollment(true);
+          try {
+            const enrollRes = await courseApi.get('/enrollments/me');
+            const enrollments = enrollRes.data.items || enrollRes.data || [];
+            setIsEnrolled(enrollments.some((e: any) => e.course_id === id));
+          } catch (e) {
+            console.error('Failed to fetch enrollments');
+          } finally {
+            setCheckingEnrollment(false);
+          }
+        }
       } catch (error) {
         console.error('Failed to fetch course:', error);
       } finally {
@@ -58,7 +73,7 @@ export default function CourseDetailPage() {
       }
     };
     if (id) fetchCourse();
-  }, [id]);
+  }, [id, user]);
 
   const handleSubmitFeedback = async () => {
     if (!user) { toast.error('Please log in to leave a review.'); return; }
@@ -164,12 +179,40 @@ export default function CourseDetailPage() {
                   </div>
                   
                   <div className="space-y-4 mb-8">
-                     <Button className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-lg font-bold shadow-xl shadow-indigo-500/20" onClick={handleEnroll}>
-                       Enroll Now
+                     {isEnrolled ? (
+                       <Button 
+                         className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-lg font-bold shadow-xl shadow-emerald-500/20 gap-2" 
+                         onClick={() => {
+                           if (lessons.length > 0) {
+                             router.push(`/courses/${id}/lessons/${lessons[0].id}`);
+                           } else {
+                             toast.info('This course has no lessons yet.');
+                           }
+                         }}
+                       >
+                         Continue Learning <PlayCircle className="w-5 h-5 fill-current" />
+                       </Button>
+                     ) : (
+                       <Button 
+                         className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-lg font-bold shadow-xl shadow-indigo-500/20" 
+                         onClick={handleEnroll}
+                         disabled={checkingEnrollment || user?.role === 'instructor'}
+                       >
+                         {checkingEnrollment ? <Loader2 className="w-5 h-5 animate-spin" /> : user?.role === 'instructor' ? 'Student Only' : 'Enroll Now'}
+                       </Button>
+                     )}
+                     <Button 
+                       variant="outline" 
+                       className="w-full h-14 border-white/10 text-lg font-bold"
+                       disabled={user?.role === 'instructor'}
+                     >
+                       {user?.role === 'instructor' ? 'Action Restricted' : 'Add to Wishlist'}
                      </Button>
-                     <Button variant="outline" className="w-full h-14 border-white/10 text-lg font-bold">
-                       Add to Wishlist
-                     </Button>
+                     {user?.role === 'instructor' && (
+                       <p className="text-[10px] text-center text-muted-foreground mt-2 italic">
+                         Instructors cannot enroll in courses.
+                       </p>
+                     )}
                   </div>
 
                   <div className="space-y-3">
@@ -247,34 +290,47 @@ export default function CourseDetailPage() {
 
         {/* Submit Review */}
         {user ? (
-          <div className="glass rounded-3xl border border-white/5 p-8 mb-10">
-            <h3 className="font-bold font-outfit text-lg mb-6">Leave a Review</h3>
-            {/* Star Picker */}
-            <div className="flex items-center gap-2 mb-6">
-              <span className="text-sm font-medium text-muted-foreground mr-2">Your Rating:</span>
-              {[1, 2, 3, 4, 5].map((s) => (
-                <button key={s} onClick={() => setMyRating(s)}
-                  className={`transition-transform hover:scale-110 ${s <= myRating ? 'text-yellow-400' : 'text-white/20'}`}>
-                  <Star className="w-7 h-7 fill-current" />
-                </button>
-              ))}
-              <span className="ml-2 text-lg font-bold">{myRating}/5</span>
+          user.role === 'instructor' ? (
+            <div className="glass rounded-2xl border border-white/5 p-6 mb-10 text-center">
+              <p className="text-muted-foreground text-sm italic">Instructors cannot leave reviews.</p>
             </div>
-            <textarea
-              value={myComment}
-              onChange={e => setMyComment(e.target.value)}
-              placeholder="Share your experience with this course..."
-              rows={4}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 mb-4"
-            />
-            <Button
-              className="bg-indigo-600 hover:bg-indigo-700 gap-2"
-              disabled={submittingFeedback || !myComment.trim()}
-              onClick={handleSubmitFeedback}
-            >
-              {submittingFeedback ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</> : <><Send className="w-4 h-4" /> Submit Review</>}
-            </Button>
-          </div>
+          ) : !isEnrolled ? (
+            <div className="glass rounded-2xl border border-white/5 p-6 mb-10 flex items-center justify-between">
+              <p className="text-muted-foreground text-sm">Enroll in this course to share your feedback!</p>
+              <Button variant="outline" className="border-indigo-500/30 text-indigo-400" onClick={handleEnroll}>
+                Enroll Now
+              </Button>
+            </div>
+          ) : (
+            <div className="glass rounded-3xl border border-white/5 p-8 mb-10">
+              <h3 className="font-bold font-outfit text-lg mb-6">Leave a Review</h3>
+              {/* Star Picker */}
+              <div className="flex items-center gap-2 mb-6">
+                <span className="text-sm font-medium text-muted-foreground mr-2">Your Rating:</span>
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <button key={s} onClick={() => setMyRating(s)}
+                    className={`transition-transform hover:scale-110 ${s <= myRating ? 'text-yellow-400' : 'text-white/20'}`}>
+                    <Star className="w-7 h-7 fill-current" />
+                  </button>
+                ))}
+                <span className="ml-2 text-lg font-bold">{myRating}/5</span>
+              </div>
+              <textarea
+                value={myComment}
+                onChange={e => setMyComment(e.target.value)}
+                placeholder="Share your experience with this course..."
+                rows={4}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 mb-4"
+              />
+              <Button
+                className="bg-indigo-600 hover:bg-indigo-700 gap-2"
+                disabled={submittingFeedback || !myComment.trim()}
+                onClick={handleSubmitFeedback}
+              >
+                {submittingFeedback ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</> : <><Send className="w-4 h-4" /> Submit Review</>}
+              </Button>
+            </div>
+          )
         ) : (
           <div className="glass rounded-2xl border border-white/5 p-6 mb-10 flex items-center justify-between">
             <p className="text-muted-foreground text-sm">Sign in to leave a review</p>

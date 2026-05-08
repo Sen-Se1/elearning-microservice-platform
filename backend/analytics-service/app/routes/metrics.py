@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from typing import List
+from typing import List, Optional
+from datetime import date
 from uuid import UUID
 from ..database import get_db
 from ..models.analytics import CourseDailyMetric
@@ -17,8 +18,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/metrics", tags=["metrics"])
 
 @router.get("/course/{course_id}", response_model=List[DailyMetricResponse])
-def get_course_metrics(course_id: UUID, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
-    cache_key = f"course_metrics:{course_id}"
+def get_course_metrics(course_id: UUID, date: Optional[date] = None, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    cache_key = f"course_metrics:{course_id}:{date if date else 'all'}"
     cached_data = get_cache(cache_key)
     if cached_data:
         logger.info(f"Cache hit for {cache_key}")
@@ -26,15 +27,39 @@ def get_course_metrics(course_id: UUID, db: Session = Depends(get_db), current_u
 
     logger.info(f"Cache miss for {cache_key}, fetching from database")
 
-    metrics = db.query(CourseDailyMetric).filter(
-        CourseDailyMetric.course_id == course_id
-    ).order_by(CourseDailyMetric.metric_date.desc()).all()
+    query = db.query(CourseDailyMetric).filter(CourseDailyMetric.course_id == course_id)
+    
+    if date:
+        query = query.filter(CourseDailyMetric.metric_date == date)
+        
+    metrics = query.order_by(CourseDailyMetric.metric_date.desc()).all()
     
     # Serialize for cache
     adapter = TypeAdapter(List[DailyMetricResponse])
     set_cache(cache_key, adapter.dump_python(metrics, mode='json'))
     
     return metrics
+
+@router.get("/course/{course_id}/summary", response_model=TopCourseResponse)
+def get_course_summary(course_id: UUID, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    cache_key = f"course_summary:{course_id}"
+    cached_data = get_cache(cache_key)
+    if cached_data:
+        return cached_data
+
+    summary = db.query(
+        func.sum(CourseDailyMetric.views_count).label("total_views"),
+        func.sum(CourseDailyMetric.enrollments_count).label("total_enrollments")
+    ).filter(CourseDailyMetric.course_id == course_id).first()
+    
+    result = TopCourseResponse(
+        course_id=course_id,
+        total_views=summary.total_views or 0,
+        total_enrollments=summary.total_enrollments or 0
+    )
+    
+    set_cache(cache_key, result.model_dump())
+    return result
 
 @router.get("/top-courses", response_model=List[TopCourseResponse])
 def get_top_courses(limit: int = 10, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):

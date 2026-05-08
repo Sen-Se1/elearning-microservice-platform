@@ -11,7 +11,8 @@ import {
   User as UserIcon, 
   LogOut, 
   LayoutDashboard,
-  Menu
+  Menu,
+  Sparkles
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -41,13 +42,19 @@ export const Navbar = () => {
           <Link href="/courses" className="hover:text-indigo-400 transition-colors">Courses</Link>
           {user && (
             <>
-              <Link href="/dashboard" className="hover:text-indigo-400 transition-colors">
-                {user.role === 'instructor' ? 'Student View' : 'My Learning'}
-              </Link>
-              {user.role === 'instructor' && (
+              {user.role === 'instructor' ? (
                 <Link href="/instructor" className="hover:text-indigo-400 transition-colors text-indigo-400">
                   Instructor Studio
                 </Link>
+              ) : (
+                <>
+                  <Link href="/dashboard" className="hover:text-indigo-400 transition-colors">
+                    My Learning
+                  </Link>
+                  <Link href="/ai-tutor" className="hover:text-indigo-400 transition-colors font-medium flex items-center gap-1.5 text-indigo-400">
+                    <Sparkles className="w-4 h-4" /> AI Tutor
+                  </Link>
+                </>
               )}
             </>
           )}
@@ -75,11 +82,19 @@ export const Navbar = () => {
                   </div>
                 </div>
                 <DropdownMenuItem className="p-0">
-                  <Link href="/dashboard" className="flex items-center w-full px-2 py-1.5 cursor-pointer">
+                  <Link href={user.role === 'instructor' ? '/instructor' : '/dashboard'} className="flex items-center w-full px-2 py-1.5 cursor-pointer">
                     <LayoutDashboard className="mr-2 h-4 w-4" />
                     Dashboard
                   </Link>
                 </DropdownMenuItem>
+                {user.role !== 'instructor' && (
+                  <DropdownMenuItem className="p-0">
+                    <Link href="/ai-tutor" className="flex items-center w-full px-2 py-1.5 cursor-pointer text-indigo-400">
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      AI Tutor
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem className="p-0">
                   <Link href="/profile" className="flex items-center w-full px-2 py-1.5 cursor-pointer">
                     <UserIcon className="mr-2 h-4 w-4" />

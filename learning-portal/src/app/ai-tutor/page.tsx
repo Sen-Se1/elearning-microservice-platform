@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/components/shared/AuthProvider';
 import { Navbar } from '@/components/shared/Navbar';
 import { aiApi, courseApi } from '@/lib/api';
 import { Course, ChatMessage } from '@/types';
@@ -31,7 +33,17 @@ export default function AiTutorPage() {
   const [loading, setLoading] = useState(false);
   const [loadingRecommendations, setLoadingRecommendations] = useState(true);
 
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+
   useEffect(() => {
+    if (!authLoading && user && user.role === 'instructor') {
+      router.push('/instructor');
+    }
+  }, [user, authLoading, router]);
+
+  useEffect(() => {
+    if (!user || user.role === 'instructor') return;
     // 1. Fetch Learning Stats (Fast)
     const fetchStats = async () => {
       try {
@@ -117,6 +129,9 @@ export default function AiTutorPage() {
       setLoading(false);
     }
   };
+
+  if (authLoading) return null;
+  if (!user || user.role === 'instructor') return null;
 
   return (
     <main className="min-h-screen bg-background flex flex-col">
