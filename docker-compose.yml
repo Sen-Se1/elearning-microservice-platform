@@ -202,3 +202,20 @@ services:
       - n8n_data:/home/node/.n8n
     networks:
       - learning-platform
+
+  learning-portal:
+    build: ./learning-portal
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_USER_SERVICE_URL=http://localhost:8002
+      - NEXT_PUBLIC_COURSE_SERVICE_URL=http://localhost:8001
+      - NEXT_PUBLIC_ANALYTICS_SERVICE_URL=http://localhost:8003
+      - NEXT_PUBLIC_AI_TUTOR_SERVICE_URL=http://localhost:8004
+    depends_on:
+      - user-service
+      - course-service
+      - analytics-service
+      - ai-tutor-service
+    networks:
+      - learning-platform
