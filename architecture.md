@@ -11,7 +11,7 @@ Le diagramme de contexte montre le système global de la plateforme e-learning e
 
 ```mermaid
 flowchart TD
-    title[C4 Level 1: System Context Diagram]
+    title["C4 Level 1: System Context Diagram"]
     style title fill:none,stroke:none,font-weight:bold,font-size:16px
     
     Student((Apprenant))
@@ -28,7 +28,7 @@ Le diagramme de conteneurs décompose le système en applications, bases de donn
 
 ```mermaid
 flowchart TD
-    title[C4 Level 2: Container Diagram]
+    title["C4 Level 2: Container Diagram"]
     style title fill:none,stroke:none,font-weight:bold,font-size:16px
 
     Student((Apprenant))
@@ -74,7 +74,7 @@ Chaque microservice (Course, User, Analytics, AI Tutor) adopte une architecture 
 
 ```mermaid
 flowchart TD
-    title[C4 Level 3: Component Diagram - Architecture des Microservices (Ex: Course Service)]
+    title["C4 Level 3: Component Diagram - Architecture des Microservices (Ex: Course Service)"]
     style title fill:none,stroke:none,font-weight:bold,font-size:16px
 
     API["Couche API / Routeurs<br/>(FastAPI Routers)"]
@@ -125,7 +125,7 @@ Il représente les interactions possibles entre les acteurs (Apprenants et Instr
 
 ```mermaid
 flowchart LR
-    title[UML Use Case Diagram]
+    title["UML Use Case Diagram"]
     style title fill:none,stroke:none,font-weight:bold,font-size:16px
 
     Student((Apprenant))
@@ -256,7 +256,7 @@ Représente l'infrastructure Docker sous-jacente, les conteneurs instanciés, le
 
 ```mermaid
 flowchart TD
-    title[UML Deployment Diagram - Architecture Docker]
+    title["UML Deployment Diagram - Architecture Docker"]
     style title fill:none,stroke:none,font-weight:bold,font-size:16px
 
     subgraph Host[Serveur / Machine Docker Hôte]
