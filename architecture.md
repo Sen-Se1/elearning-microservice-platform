@@ -34,21 +34,21 @@ flowchart TD
     Student((Apprenant))
     Instructor((Instructeur))
 
-    Gateway[API Gateway\n(Nginx)]
-    Frontend[Learning Portal\n(Next.js, React)]
+    Gateway["API Gateway<br/>(Nginx)"]
+    Frontend["Learning Portal<br/>(Next.js, React)"]
     
-    UserSvc[User Service\n(Node.js, Express)]
-    CourseSvc[Course Service\n(Python, FastAPI)]
-    AnalyticsSvc[Analytics Service\n(Python, FastAPI)]
-    AITutorSvc[AI Tutor Service\n(Python, FastAPI)]
-    n8n[n8n Automation\n(Node.js)]
+    UserSvc["User Service<br/>(Node.js, Express)"]
+    CourseSvc["Course Service<br/>(Python, FastAPI)"]
+    AnalyticsSvc["Analytics Service<br/>(Python, FastAPI)"]
+    AITutorSvc["AI Tutor Service<br/>(Python, FastAPI)"]
+    n8n["n8n Automation<br/>(Node.js)"]
     
-    DB_User[(User DB\nMongoDB)]
-    DB_Course[(Course DB\nPostgreSQL)]
-    DB_Analytics[(Analytics DB\nPostgreSQL)]
-    Cache_AI[(Cache\nRedis)]
-    Storage[(Object Storage\nMinIO)]
-    Ollama[Local LLM\nOllama Llama3]
+    DB_User[("User DB<br/>MongoDB")]
+    DB_Course[("Course DB<br/>PostgreSQL")]
+    DB_Analytics[("Analytics DB<br/>PostgreSQL")]
+    Cache_AI[("Cache<br/>Redis")]
+    Storage[("Object Storage<br/>MinIO")]
+    Ollama["Local LLM<br/>Ollama Llama3"]
 
     Student --> Gateway
     Instructor --> Gateway
@@ -78,26 +78,26 @@ flowchart TD
     title[C4 Level 3: Component Diagram - Architecture des Microservices (Ex: Course Service)]
     style title fill:none,stroke:none,font-weight:bold,font-size:16px
 
-    API[Couche API / Routeurs\n(FastAPI Routers)]
-    CourseCtrl[Course Controller]
-    LessonCtrl[Lesson Controller]
-    EnrollmentCtrl[Enrollment Controller]
-    FeedbackCtrl[Feedback Controller]
+    API["Couche API / Routeurs<br/>(FastAPI Routers)"]
+    CourseCtrl["Course Controller"]
+    LessonCtrl["Lesson Controller"]
+    EnrollmentCtrl["Enrollment Controller"]
+    FeedbackCtrl["Feedback Controller"]
     
-    ServiceLayer[Couche Service / Logique Métier]
-    CourseLogic[Course Logic]
-    LessonLogic[Lesson Logic]
-    EnrollmentLogic[Enrollment Logic]
-    FeedbackLogic[Feedback Logic]
+    ServiceLayer["Couche Service / Logique Métier"]
+    CourseLogic["Course Logic"]
+    LessonLogic["Lesson Logic"]
+    EnrollmentLogic["Enrollment Logic"]
+    FeedbackLogic["Feedback Logic"]
     
-    DAOLayer[Couche Accès aux Données / DAO]
-    CourseRepo[Course Repository]
-    LessonRepo[Lesson Repository]
-    EnrollmentRepo[Enrollment Repository]
-    FeedbackRepo[Feedback Repository]
+    DAOLayer["Couche Accès aux Données / DAO"]
+    CourseRepo["Course Repository"]
+    LessonRepo["Lesson Repository"]
+    EnrollmentRepo["Enrollment Repository"]
+    FeedbackRepo["Feedback Repository"]
 
-    DB[(Base de Données)]
-    n8n[n8n Webhook]
+    DB[("Base de Données")]
+    n8n["n8n Webhook"]
 
     API --> CourseCtrl & LessonCtrl & EnrollmentCtrl & FeedbackCtrl
     CourseCtrl --> CourseLogic
@@ -262,22 +262,22 @@ flowchart TD
 
     subgraph Host[Serveur / Machine Docker Hôte]
         subgraph DockerNetwork[Docker Network: learning-platform]
-            Gateway[Container: api-gateway\nPort interne: 8000\nPort externe: 80]
+            Gateway["Container: api-gateway<br/>Port interne: 8000<br/>Port externe: 80"]
             
-            Frontend[Container: learning-portal\nPort: 3000]
+            Frontend["Container: learning-portal<br/>Port: 3000"]
             
-            UserSvc[Container: user-service\nPort: 8002]
-            CourseSvc[Container: course-service\nPort: 8001]
-            AnalyticsSvc[Container: analytics-service\nPort: 8003]
-            AITutorSvc[Container: ai-tutor-service\nPort: 8004]
-            N8N[Container: n8n\nPort externe: 5678]
+            UserSvc["Container: user-service<br/>Port: 8002"]
+            CourseSvc["Container: course-service<br/>Port: 8001"]
+            AnalyticsSvc["Container: analytics-service<br/>Port: 8003"]
+            AITutorSvc["Container: ai-tutor-service<br/>Port: 8004"]
+            N8N["Container: n8n<br/>Port externe: 5678"]
             
-            Ollama[Container: ollama\nPort: 11434]
+            Ollama["Container: ollama<br/>Port: 11434"]
             
-            PG[(Container: postgres\nPort: 5432)]
-            Mongo[(Container: mongo\nPort: 27017)]
-            Redis[(Container: redis\nPort: 6379)]
-            Minio[(Container: minio\nPort: 9000)]
+            PG[("Container: postgres<br/>Port: 5432")]
+            Mongo[("Container: mongo<br/>Port: 27017")]
+            Redis[("Container: redis<br/>Port: 6379")]
+            Minio[("Container: minio<br/>Port: 9000")]
         end
     end
     
