@@ -408,7 +408,7 @@ classDiagram
     %% ── Cross-service links (logical) ───────────────────────
     Instructor "1" --> "*" Course         : creates
     Learner    "1" --> "*" Enrollment     : enrolls in
-    Learner    "1" --> "*" Feedback       : writes
+    Learner    "1" --> "*" Feedback       : submits
     User       "1" ..> "*" AnalyticsEvent : triggers
 
     %% ── Course Service internal ─────────────────────────────
