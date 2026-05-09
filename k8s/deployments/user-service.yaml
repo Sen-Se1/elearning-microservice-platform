@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  namespace: elearning
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+        - name: user-service
+          image: ghcr.io/sen-se1/elearning-microservice-platform/user-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8002
+          envFrom:
+            - configMapRef:
+                name: app-config
+          env:
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: JWT_SECRET_KEY
+            - name: EMAIL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: EMAIL_USER
+            - name: EMAIL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: EMAIL_PASSWORD
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "300m"
+          readinessProbe:
+            httpGet:
+              path: /api/v1/users/health
+              port: 8002
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 5

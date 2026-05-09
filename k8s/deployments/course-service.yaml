@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: course-service
+  namespace: elearning
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: course-service
+  template:
+    metadata:
+      labels:
+        app: course-service
+    spec:
+      containers:
+        - name: course-service
+          image: ghcr.io/sen-se1/elearning-microservice-platform/course-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8001
+          envFrom:
+            - configMapRef:
+                name: app-config
+          env:
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: JWT_SECRET_KEY
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: MINIO_ACCESS_KEY
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: MINIO_SECRET_KEY
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "384Mi"
+              cpu: "400m"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 5

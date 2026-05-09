@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-tutor-service
+  namespace: elearning
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-tutor-service
+  template:
+    metadata:
+      labels:
+        app: ai-tutor-service
+    spec:
+      containers:
+        - name: ai-tutor-service
+          image: ghcr.io/sen-se1/elearning-microservice-platform/ai-tutor-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8004
+          envFrom:
+            - configMapRef:
+                name: app-config
+          env:
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: JWT_SECRET_KEY
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "300m"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 5

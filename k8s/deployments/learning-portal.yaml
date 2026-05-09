@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: learning-portal
+  namespace: elearning
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: learning-portal
+  template:
+    metadata:
+      labels:
+        app: learning-portal
+    spec:
+      containers:
+        - name: learning-portal
+          image: ghcr.io/sen-se1/elearning-microservice-platform/learning-portal:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: app-config
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 5

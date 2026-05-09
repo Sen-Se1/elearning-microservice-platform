@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n8n
+  namespace: elearning
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: n8n
+  template:
+    metadata:
+      labels:
+        app: n8n
+    spec:
+      containers:
+        - name: n8n
+          image: n8nio/n8n:latest
+          ports:
+            - containerPort: 5678
+          env:
+            - name: N8N_HOST
+              value: "0.0.0.0"
+            - name: N8N_PORT
+              value: "5678"
+            - name: N8N_PROTOCOL
+              value: "http"
+            - name: NODE_ENV
+              value: "production"
+            - name: WEBHOOK_URL
+              value: "http://192.168.66.10:30567/"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "384Mi"
+              cpu: "300m"
+          volumeMounts:
+            - name: n8n-data
+              mountPath: /home/node/.n8n
+      volumes:
+        - name: n8n-data
+          emptyDir: {}
