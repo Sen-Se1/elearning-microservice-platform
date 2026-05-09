@@ -19,8 +19,8 @@ graph TD
     UserSvc --> DB_Mongo[(MongoDB)]
     AnalyticsSvc --> DB_PG
     
-    AITutorSvc --> Ollama[Ollama Local LLM]
     AnalyticsSvc --> DB_Redis[(Redis)]
+    AITutorSvc --> Ollama[Ollama Local LLM]
     CourseSvc --> DB_Minio[(MinIO)]
     
     Feedback(User Feedback) --> n8n[n8n Automation]
