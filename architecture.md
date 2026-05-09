@@ -114,7 +114,92 @@ flowchart TD
     CourseRepo & LessonRepo & EnrollmentRepo & FeedbackRepo --> DB
 ```
 
-*(Note : Cette même logique de séparation Contrôleur / Service / DAO s'applique au `user-service`, `analytics-service` et `ai-tutor-service` avec leurs entités respectives).*
+#### User Service
+```mermaid
+flowchart TD
+    title["C4 Level 3: Component Diagram - User Service"]
+    style title fill:none,stroke:none,font-weight:bold,font-size:16px
+
+    API["Couche API / Routeurs<br/>(Express Routers)"]
+    AuthCtrl["Auth Controller"]
+    UserCtrl["User Controller"]
+    
+    ServiceLayer["Couche Service / Logique Métier"]
+    AuthLogic["Auth Service<br/>(JWT, bcrypt)"]
+    UserLogic["User Service"]
+    
+    DAOLayer["Couche Accès aux Données / DAO"]
+    UserRepo["User Repository<br/>(Mongoose)"]
+
+    DB[("User DB<br/>MongoDB")]
+
+    API --> AuthCtrl & UserCtrl
+    AuthCtrl --> AuthLogic
+    UserCtrl --> UserLogic
+    
+    AuthLogic --> UserRepo
+    UserLogic --> UserRepo
+    
+    UserRepo --> DB
+```
+
+#### Analytics Service
+```mermaid
+flowchart TD
+    title["C4 Level 3: Component Diagram - Analytics Service"]
+    style title fill:none,stroke:none,font-weight:bold,font-size:16px
+
+    API["Couche API / Routeurs<br/>(FastAPI Routers)"]
+    MetricsCtrl["Metrics Controller"]
+    EventsCtrl["Events Controller"]
+    
+    ServiceLayer["Couche Service / Logique Métier"]
+    MetricsLogic["Metrics Service"]
+    EventsLogic["Events Service"]
+    
+    DAOLayer["Couche Accès aux Données / DAO"]
+    MetricsRepo["Metrics Repository"]
+    EventsRepo["Events Repository"]
+
+    DB[("Course & Analytics DB<br/>PostgreSQL")]
+    Cache[("Cache<br/>Redis")]
+
+    API --> MetricsCtrl & EventsCtrl
+    MetricsCtrl --> MetricsLogic
+    EventsCtrl --> EventsLogic
+    
+    MetricsLogic --> MetricsRepo
+    EventsLogic --> EventsRepo
+    
+    MetricsRepo --> DB
+    EventsRepo --> DB
+    MetricsLogic -.-> Cache
+```
+
+#### AI Tutor Service
+```mermaid
+flowchart TD
+    title["C4 Level 3: Component Diagram - AI Tutor Service"]
+    style title fill:none,stroke:none,font-weight:bold,font-size:16px
+
+    API["Couche API / Routeurs<br/>(FastAPI Routers)"]
+    ChatCtrl["Chat Controller"]
+    QuizCtrl["Quiz Controller"]
+    
+    ServiceLayer["Couche Service / Logique Métier"]
+    PromptLogic["Prompt Builder Service"]
+    LLMLogic["LLM Orchestration Service"]
+    
+    External["Modèle Local"]
+    Ollama["Ollama Local LLM<br/>(Llama 3)"]
+
+    API --> ChatCtrl & QuizCtrl
+    ChatCtrl --> LLMLogic
+    QuizCtrl --> LLMLogic
+    
+    LLMLogic --> PromptLogic
+    LLMLogic --> Ollama
+```
 
 ---
 
