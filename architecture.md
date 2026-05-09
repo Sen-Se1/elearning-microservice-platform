@@ -240,66 +240,217 @@ flowchart LR
 ```
 
 ### Diagramme de Classes (Class Diagram)
-Il modélise la structure des entités de données principales et leurs relations.
+It models the structure of the main data entities and their relationships across all microservices.
 
 ```mermaid
 classDiagram
+    direction TB
+
+    %% ── USER SERVICE (MongoDB) ──────────────────────────────
     class User {
-        +UUID id
-        +String username
-        +String email
-        +String password_hash
-        +Role role
-        +Date created_at
+        +ObjectId  _id
+        +String    email
+        +String    password
+        +String    role
+        +Boolean   isVerified
+        +Date      lastLogin
+        +String    emailVerificationToken
+        +Date      emailVerificationTokenExpires
+        +String    passwordResetToken
+        +Date      passwordResetTokenExpires
+        +String    pendingEmail
+        +String    emailUpdateToken
+        +Date      emailUpdateTokenExpires
+        +Date      createdAt
+        +Date      updatedAt
         +login()
         +register()
+        +comparePassword()
     }
-    
+
+    class Profile {
+        +String  firstName
+        +String  lastName
+        +String  phone
+        +String  avatar
+        +Date    dateOfBirth
+    }
+
+    class Address {
+        +String  street
+        +String  city
+        +String  state
+        +String  country
+        +String  zipCode
+    }
+
+    class Instructor {
+        +getCourses()
+        +getAnalytics()
+    }
+
+    class Learner {
+        +getEnrollments()
+        +askAITutor()
+        +submitFeedback()
+    }
+
+    %% ── COURSE SERVICE (PostgreSQL) ─────────────────────────
     class Course {
-        +UUID id
-        +UUID instructor_id
-        +String title
-        +String description
-        +Float price
-        +String category
-        +Date created_at
+        +UUID    id
+        +String  instructor_id
+        +String  title
+        +String  description
+        +String  short_description
+        +Float   price
+        +String  category
+        +String  subcategory
+        +String  level
+        +Integer duration_hours
+        +String  thumbnail_url
+        +Boolean published
+        +Boolean is_featured
+        +Float   rating
+        +Integer total_ratings
+        +Integer total_enrollments
+        +Date    created_at
+        +Date    updated_at
         +addLesson()
         +publish()
     }
-    
+
     class Lesson {
-        +UUID id
-        +UUID course_id
-        +String title
-        +String content_type
-        +String content_url
-        +Int order_index
+        +UUID    id
+        +UUID    course_id
+        +String  title
+        +String  description
+        +String  content_type
+        +String  content_url
+        +Integer duration_minutes
+        +Integer order_index
+        +Boolean is_preview
+        +Boolean is_published
+        +Date    created_at
+        +Date    updated_at
         +complete()
     }
-    
+
     class Enrollment {
-        +UUID id
-        +UUID user_id
-        +UUID course_id
-        +Date enrolled_at
-        +Float progress
-    }
-    
-    class Feedback {
-        +UUID id
-        +UUID course_id
-        +UUID user_id
-        +Int rating
-        +String comment
-        +String ai_summary
+        +UUID    id
+        +String  user_id
+        +UUID    course_id
+        +Date    enrolled_at
+        +Boolean completed
+        +Float   progress_percentage
+        +Date    last_accessed_at
+        +Date    completed_at
+        +Integer total_time_spent_minutes
+        +UUID    last_lesson_id
+        +Date    created_at
+        +Date    updated_at
+        +updateProgress()
     }
 
-    User "1" -- "*" Course : Enseigne >
-    User "1" -- "*" Enrollment : S'inscrit >
-    Course "1" -- "*" Lesson : Contient >
-    Course "1" -- "*" Enrollment : Possède >
-    Course "1" -- "*" Feedback : Reçoit >
-    User "1" -- "*" Feedback : Rédige >
+    class LessonProgress {
+        +UUID    id
+        +UUID    enrollment_id
+        +UUID    lesson_id
+        +UUID    course_id
+        +Boolean completed
+        +Integer time_spent_minutes
+        +Date    last_accessed_at
+        +Date    completed_at
+        +Date    created_at
+        +Date    updated_at
+    }
+
+    class Feedback {
+        +UUID    id
+        +UUID    course_id
+        +String  user_id
+        +Integer rating
+        +String  comment
+        +String  ai_summary
+        +Date    created_at
+        +Date    updated_at
+    }
+
+    %% ── ANALYTICS SERVICE (PostgreSQL) ──────────────────────
+    class AnalyticsEvent {
+        +UUID      id
+        +EventType event_type
+        +String    user_id
+        +UUID      course_id
+        +UserRole  user_role
+        +Date      created_at
+        +Date      updated_at
+    }
+
+    class CourseDailyMetric {
+        +UUID    id
+        +UUID    course_id
+        +Date    metric_date
+        +Integer views_count
+        +Integer enrollments_count
+        +Date    created_at
+        +Date    updated_at
+    }
+
+    %% ── AI TUTOR SERVICE (in-memory / Ollama) ───────────────
+    class ChatMessage {
+        +String role
+        +String content
+    }
+
+    class ChatSession {
+        +String         course_id
+        +String         lesson_id
+        +Boolean        stream
+        +List messages
+    }
+
+    class QuizQuestion {
+        +String       question
+        +List options
+        +String       correct_answer
+        +String       explanation
+    }
+
+    class QuizSession {
+        +String         course_id
+        +String         lesson_id
+        +Integer        num_questions
+        +List questions
+    }
+
+    %% ── Inheritance ─────────────────────────────────────────
+    User <|-- Instructor : inherits
+    User <|-- Learner    : inherits
+
+    %% ── Composition within User Service ────────────────────
+    User *-- Profile : has
+    User *-- Address : has
+
+    %% ── Cross-service links (logical) ───────────────────────
+    Instructor "1" --> "*" Course      : creates
+    Learner    "1" --> "*" Enrollment  : enrolls in
+    Learner    "1" --> "*" Feedback    : writes
+
+    %% ── Course Service internal ─────────────────────────────
+    Course     "1" *-- "*" Lesson         : contains
+    Course     "1" *-- "*" Enrollment     : has
+    Course     "1" *-- "*" Feedback       : receives
+    Enrollment "1" *-- "*" LessonProgress : tracks
+
+    %% ── Analytics Service ───────────────────────────────────
+    Course "1" --> "*" AnalyticsEvent    : generates
+    Course "1" --> "*" CourseDailyMetric : aggregated in
+
+    %% ── AI Tutor Service ────────────────────────────────────
+    ChatSession  "1" *-- "*" ChatMessage  : contains
+    QuizSession  "1" *-- "*" QuizQuestion : contains
+    ChatSession  --> Lesson : references
+    QuizSession  --> Lesson : references
 ```
 
 ### Diagramme de Séquence (Sequence Diagram)
