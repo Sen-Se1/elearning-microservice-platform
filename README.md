@@ -45,7 +45,7 @@ graph TD
 | **Databases** | PostgreSQL, MongoDB |
 | **Caching & Storage** | Redis, MinIO |
 | **Automation** | n8n |
-| **DevOps** | Docker, Docker Compose |
+| **DevOps** | Docker, Docker Compose, Kubernetes |
 
 ## 📦 Services Overview
 
@@ -79,13 +79,24 @@ graph TD
    cp .env.example .env
    ```
 
-3. **Launch the platform (Production Build):**
+3. **Launch the platform (Docker Compose):**
    Use the production docker-compose file which sets up the API Gateway and routes all traffic internally.
    ```bash
    docker compose -f docker-compose.prod.yml up -d --build
    ```
 
-4. **Access the services:**
+4. **Launch the platform (Kubernetes):**
+   Deploy the microservices to a Kubernetes cluster using the provided deployment scripts.
+   ```bash
+   # Windows (PowerShell)
+   .\k8s\deploy.ps1
+
+   # Linux/macOS
+   chmod +x ./k8s/deploy.sh
+   ./k8s/deploy.sh
+   ```
+
+5. **Access the services:**
    - **Frontend Learning Portal:** `http://localhost`
    - **n8n Editor:** `http://localhost:5678`
 
@@ -98,6 +109,7 @@ elearning-microservice-platform/
 │   ├── course-service/      # Content Management (FastAPI)
 │   ├── user-service/        # Identity Management (Node.js)
 │   └── ai-tutor-service/    # AI Assistance with Ollama (FastAPI)
+├── k8s/                     # Kubernetes Manifests & Deployment Scripts
 ├── learning-portal/         # Frontend Next.js Application
 ├── gateway/                 # Nginx Configuration
 ├── docker-compose.yml       # Development Orchestration
