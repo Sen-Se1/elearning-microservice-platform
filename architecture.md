@@ -46,7 +46,7 @@ flowchart TD
     DB_User[("User DB<br/>MongoDB")]
     DB_Course[("Course DB<br/>PostgreSQL")]
     DB_Analytics[("Analytics DB<br/>PostgreSQL")]
-    Cache_AI[("Cache<br/>Redis")]
+    Cache_Redis[("Cache<br/>Redis")]
     Storage[("Object Storage<br/>MinIO")]
     Ollama["Local LLM<br/>Ollama Llama3"]
 
@@ -63,7 +63,7 @@ flowchart TD
     CourseSvc --> DB_Course
     CourseSvc --> Storage
     AnalyticsSvc --> DB_Analytics
-    AITutorSvc --> Cache_AI
+    AnalyticsSvc --> Cache_Redis
     AITutorSvc --> Ollama
     
     CourseSvc -.->|Déclenche un Webhook| n8n
@@ -294,6 +294,6 @@ flowchart TD
     CourseSvc -->|SQLAlchemy| PG
     CourseSvc -->|Boto3| Minio
     AnalyticsSvc -->|SQLAlchemy| PG
-    AITutorSvc -->|Redis-py| Redis
+    AnalyticsSvc -->|Redis-py| Redis
     AITutorSvc -->|API Rest| Ollama
 ```
