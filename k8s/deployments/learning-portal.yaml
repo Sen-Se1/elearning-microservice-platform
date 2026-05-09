@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: learning-portal
-          image: ghcr.io/sen-se1/elearning-microservice-platform/learning-portal:latest
+          image: sen5e1/learning-portal:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3000

@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: course-service
-          image: ghcr.io/sen-se1/elearning-microservice-platform/course-service:latest
+          image: sen5e1/course-service:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8001

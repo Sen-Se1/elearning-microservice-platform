@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: analytics-service
-          image: ghcr.io/sen-se1/elearning-microservice-platform/analytics-service:latest
+          image: sen5e1/analytics-service:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8003

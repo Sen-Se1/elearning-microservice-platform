@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: ai-tutor-service
-          image: ghcr.io/sen-se1/elearning-microservice-platform/ai-tutor-service:latest
+          image: sen5e1/ai-tutor-service:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8004
