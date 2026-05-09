@@ -211,10 +211,10 @@ It represents the possible interactions between actors (Learners and Instructors
 ```mermaid
 flowchart LR
     %% Primary Actors (Left)
-    actor((Guest))
-    User((User))
-    Learner((Learner))
-    Instructor((Instructor))
+    Guest((<i class='fa-solid fa-user'></i> Guest))
+    User((<i class='fa-solid fa-users'></i> User))
+    Learner((<i class='fa-solid fa-user-graduate'></i> Learner))
+    Instructor((<i class='fa-solid fa-user-tie'></i> Instructor))
 
     %% Actor Generalization
     Learner -. "inherits" .-> User
