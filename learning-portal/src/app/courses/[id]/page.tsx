@@ -53,7 +53,8 @@ export default function CourseDetailPage() {
         setCourse(courseRes.data);
         const lessonItems = lessonsRes.data.items || lessonsRes.data;
         setLessons(lessonItems.sort((a: any, b: any) => a.order_index - b.order_index));
-        setFeedbacks(feedbackRes.data || []);
+        const feedbackItems = feedbackRes.data || [];
+        setFeedbacks(feedbackItems.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()));
 
         if (user && user.role !== 'instructor') {
           setCheckingEnrollment(true);
@@ -281,7 +282,8 @@ export default function CourseDetailPage() {
             className="border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/10 gap-2"
             onClick={async () => {
               const res = await courseApi.get(`/feedback/course/${id}`);
-              setFeedbacks(res.data || []);
+              const feedbackItems = res.data || [];
+              setFeedbacks(feedbackItems.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()));
               toast.success('Reviews updated!');
             }}
           >

@@ -464,14 +464,14 @@ export default function LessonPlayerPage() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   onClick={() => setShowAiChat(false)}
-                  className="absolute inset-0 bg-black/60 backdrop-blur-sm z-40"
+                  className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
                 />
                 <motion.div
                   initial={{ x: '100%' }}
                   animate={{ x: 0 }}
                   exit={{ x: '100%' }}
                   transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                  className="absolute right-0 top-0 bottom-0 w-full max-w-md bg-zinc-900 border-l border-white/10 z-50 flex flex-col shadow-2xl"
+                  className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-zinc-900 border-l border-white/10 z-[110] flex flex-col shadow-2xl"
                 >
                   <div className="p-6 border-b border-white/5 flex items-center justify-between bg-zinc-900/50">
                     <div className="flex items-center gap-3">
