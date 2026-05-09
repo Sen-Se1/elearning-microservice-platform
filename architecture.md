@@ -1,13 +1,13 @@
-# Architecture de la Plateforme (C4 Model & UML)
+# Platform Architecture (C4 Model & UML)
 
-Ce document décrit l'architecture de la plateforme e-learning en s'appuyant sur le modèle C4 pour la structuration globale, complété par des diagrammes UML pour détailler les comportements, la structure des données et le déploiement.
+This document describes the architecture of the e-learning platform based on the C4 model for overall structuring, complemented by UML diagrams to detail behaviors, data structure, and deployment.
 
 ---
 
-## 1. Modèle C4
+## 1. C4 Model
 
-### Niveau 1 : Context Diagram (Diagramme de Contexte)
-Le diagramme de contexte montre le système global de la plateforme e-learning et ses interactions avec les acteurs externes.
+### Level 1: Context Diagram
+The context diagram shows the overall system of the e-learning platform and its interactions with external actors.
 
 ```mermaid
 flowchart TD
@@ -17,14 +17,14 @@ flowchart TD
     Learner((Learner))
     Instructor((Instructor))
     
-    System[Plateforme E-learning]
+    System[E-learning Platform]
     
-    Learner -->|Consulte les cours, interagit avec l'IA, soumet des feedbacks| System
-    Instructor -->|Crée des cours, gère les leçons, consulte les analytiques| System
+    Learner -->|Browses courses, interacts with AI, submits feedback| System
+    Instructor -->|Creates courses, manages lessons, views analytics| System
 ```
 
-### Niveau 2 : Container Diagram (Diagramme de Conteneurs)
-Le diagramme de conteneurs décompose le système en applications, bases de données et microservices.
+### Level 2: Container Diagram
+The container diagram breaks down the system into applications, databases, and microservices.
 
 ```mermaid
 flowchart TD
@@ -65,37 +65,37 @@ flowchart TD
     AnalyticsSvc --> Cache_Redis
     AITutorSvc --> Ollama
     
-    CourseSvc -.->|Déclenche un Webhook| n8n
-    n8n -.->|Analyse IA & Insights| AnalyticsSvc
+    CourseSvc -.->|Triggers a Webhook| n8n
+    n8n -.->|AI Analysis & Insights| AnalyticsSvc
 ```
 
-### Niveau 3 : Component Diagram (Diagramme de Composants)
-Chaque microservice (Course, User, Analytics, AI Tutor) adopte une architecture en couches standard (Contrôleurs, Services, DAO/Repositories). Voici l'exemple détaillé pour le microservice des cours (`course-service`).
+### Level 3: Component Diagram
+Each microservice (Course, User, Analytics, AI Tutor) adopts a standard layered architecture (Controllers, Services, DAO/Repositories). Here is the detailed example for the course microservice (`course-service`).
 
 ```mermaid
 flowchart TD
-    title["C4 Level 3: Component Diagram - Architecture des Microservices (Ex: Course Service)"]
+    title["C4 Level 3: Component Diagram - Microservices Architecture (Ex: Course Service)"]
     style title fill:none,stroke:none,font-weight:bold,font-size:16px
 
-    API["Couche API / Routeurs<br/>(FastAPI Routers)"]
+    API["API / Routers Layer<br/>(FastAPI Routers)"]
     CourseCtrl["Course Controller"]
     LessonCtrl["Lesson Controller"]
     EnrollmentCtrl["Enrollment Controller"]
     FeedbackCtrl["Feedback Controller"]
     
-    ServiceLayer["Couche Service / Logique Métier"]
+    ServiceLayer["Service / Business Logic Layer"]
     CourseLogic["Course Logic"]
     LessonLogic["Lesson Logic"]
     EnrollmentLogic["Enrollment Logic"]
     FeedbackLogic["Feedback Logic"]
     
-    DAOLayer["Couche Accès aux Données / DAO"]
+    DAOLayer["Data Access / DAO Layer"]
     CourseRepo["Course Repository"]
     LessonRepo["Lesson Repository"]
     EnrollmentRepo["Enrollment Repository"]
     FeedbackRepo["Feedback Repository"]
 
-    DB[("Base de Données")]
+    DB[("Database")]
     n8n["n8n Webhook"]
 
     API --> CourseCtrl & LessonCtrl & EnrollmentCtrl & FeedbackCtrl
@@ -109,7 +109,7 @@ flowchart TD
     EnrollmentLogic --> EnrollmentRepo
     FeedbackLogic --> FeedbackRepo
     
-    FeedbackLogic -.->|Envoi des données de feedback| n8n
+    FeedbackLogic -.->|Sends feedback data| n8n
 
     CourseRepo & LessonRepo & EnrollmentRepo & FeedbackRepo --> DB
 ```
@@ -120,15 +120,15 @@ flowchart TD
     title["C4 Level 3: Component Diagram - User Service"]
     style title fill:none,stroke:none,font-weight:bold,font-size:16px
 
-    API["Couche API / Routeurs<br/>(Express Routers)"]
+    API["API / Routers Layer<br/>(Express Routers)"]
     AuthCtrl["Auth Controller"]
     UserCtrl["User Controller"]
     
-    ServiceLayer["Couche Service / Logique Métier"]
+    ServiceLayer["Service / Business Logic Layer"]
     AuthLogic["Auth Service<br/>(JWT, bcrypt)"]
     UserLogic["User Service"]
     
-    DAOLayer["Couche Accès aux Données / DAO"]
+    DAOLayer["Data Access / DAO Layer"]
     UserRepo["User Repository<br/>(Mongoose)"]
 
     DB[("User DB<br/>MongoDB")]
@@ -149,15 +149,15 @@ flowchart TD
     title["C4 Level 3: Component Diagram - Analytics Service"]
     style title fill:none,stroke:none,font-weight:bold,font-size:16px
 
-    API["Couche API / Routeurs<br/>(FastAPI Routers)"]
+    API["API / Routers Layer<br/>(FastAPI Routers)"]
     MetricsCtrl["Metrics Controller"]
     EventsCtrl["Events Controller"]
     
-    ServiceLayer["Couche Service / Logique Métier"]
+    ServiceLayer["Service / Business Logic Layer"]
     MetricsLogic["Metrics Service"]
     EventsLogic["Events Service"]
     
-    DAOLayer["Couche Accès aux Données / DAO"]
+    DAOLayer["Data Access / DAO Layer"]
     MetricsRepo["Metrics Repository"]
     EventsRepo["Events Repository"]
 
@@ -182,15 +182,15 @@ flowchart TD
     title["C4 Level 3: Component Diagram - AI Tutor Service"]
     style title fill:none,stroke:none,font-weight:bold,font-size:16px
 
-    API["Couche API / Routeurs<br/>(FastAPI Routers)"]
+    API["API / Routers Layer<br/>(FastAPI Routers)"]
     ChatCtrl["Chat Controller"]
     QuizCtrl["Quiz Controller"]
     
-    ServiceLayer["Couche Service / Logique Métier"]
+    ServiceLayer["Service / Business Logic Layer"]
     PromptLogic["Prompt Builder Service"]
     LLMLogic["LLM Orchestration Service"]
     
-    External["Modèle Local"]
+    External["Local Model"]
     Ollama["Ollama Local LLM<br/>(Llama 3)"]
 
     API --> ChatCtrl & QuizCtrl
@@ -203,10 +203,10 @@ flowchart TD
 
 ---
 
-## 2. Diagrammes UML
+## 2. UML Diagrams
 
-### Diagramme de Cas d'Utilisation (Use Case Diagram)
-Il représente les interactions possibles entre les acteurs (Learners et Instructors) et les fonctionnalités de la plateforme.
+### Use Case Diagram
+It represents the possible interactions between actors (Learners and Instructors) and the platform's features.
 
 ```mermaid
 flowchart LR
@@ -268,7 +268,7 @@ flowchart LR
     UC1 -. "<<include>>" .-> UC3
 ```
 
-### Diagramme de Classes (Class Diagram)
+### Class Diagram
 It models the structure of the main data entities and their relationships across all microservices.
 
 ```mermaid
@@ -459,8 +459,8 @@ classDiagram
 
 ```
 
-### Diagramme de Séquence (Sequence Diagram)
-Exemple de flux métier : Inscription ➔ Accès au cours ➔ Interaction AI Tutor ➔ Feedback ➔ n8n Workflow.
+### Sequence Diagram
+Example business flow: Registration ➔ Course Access ➔ AI Tutor Interaction ➔ Feedback ➔ n8n Workflow.
 
 ```mermaid
 sequenceDiagram
@@ -471,39 +471,39 @@ sequenceDiagram
     participant AISvc as AI Tutor Service
     participant n8n as n8n Automation
     
-    Learner->>Portal: S'inscrit & Se connecte
+    Learner->>Portal: Registers & Logs in
     Portal->>UserSvc: POST /api/v1/users/register & /login
-    UserSvc-->>Portal: Retourne le Token JWT
+    UserSvc-->>Portal: Returns JWT Token
     
-    Learner->>Portal: S'inscrit au Cours
+    Learner->>Portal: Enrolls in Course
     Portal->>CourseSvc: POST /api/v1/enrollments/
-    CourseSvc-->>Portal: Inscription réussie
+    CourseSvc-->>Portal: Enrollment successful
     
-    Learner->>Portal: Regarde la leçon & Pose une question
+    Learner->>Portal: Watches lesson & Asks a question
     Portal->>AISvc: POST /api/v1/tutor/chat
-    AISvc-->>Portal: Retourne la réponse de l'IA (Ollama)
+    AISvc-->>Portal: Returns AI response (Ollama)
     
-    Learner->>Portal: Termine le cours & Laisse un Feedback
+    Learner->>Portal: Completes course & Leaves Feedback
     Portal->>CourseSvc: POST /api/v1/feedback/
-    CourseSvc-->>Portal: Feedback Sauvegardé
-    CourseSvc->>n8n: Déclenche Webhook (Asynchrone)
+    CourseSvc-->>Portal: Feedback Saved
+    CourseSvc->>n8n: Triggers Webhook (Asynchronous)
     
-    n8n->>n8n: Analyse de sentiment via IA (LLM)
-    n8n->>UserSvc: Récupère les infos de l'Instructor
-    n8n->>Instructor: Notifie l'Instructor (Email/Alerte)
+    n8n->>n8n: Sentiment analysis via AI (LLM)
+    n8n->>UserSvc: Fetches Instructor info
+    n8n->>Instructor: Notifies Instructor (Email/Alert)
 ```
 
-### Diagramme de Déploiement (Deployment Diagram)
-Représente l'infrastructure Docker sous-jacente, les conteneurs instanciés, leurs ports exposés et les liaisons réseaux gérées via Docker Compose.
+### Deployment Diagram
+Represents the underlying Docker infrastructure, instantiated containers, their exposed ports, and network links managed via Docker Compose.
 
 ```mermaid
 flowchart TD
     title["UML Deployment Diagram - Architecture Docker"]
     style title fill:none,stroke:none,font-weight:bold,font-size:16px
 
-    subgraph Host[Serveur / Machine Docker Hôte]
+    subgraph Host[Server / Docker Host Machine]
         subgraph DockerNetwork[Docker Network: learning-platform]
-            Gateway["Container: api-gateway<br/>Port interne: 8000<br/>Port externe: 80"]
+            Gateway["Container: api-gateway<br/>Internal port: 8000<br/>External port: 80"]
             
             Frontend["Container: learning-portal<br/>Port: 3000"]
             
@@ -511,7 +511,7 @@ flowchart TD
             CourseSvc["Container: course-service<br/>Port: 8001"]
             AnalyticsSvc["Container: analytics-service<br/>Port: 8003"]
             AITutorSvc["Container: ai-tutor-service<br/>Port: 8004"]
-            N8N["Container: n8n<br/>Port externe: 5678"]
+            N8N["Container: n8n<br/>External port: 5678"]
             
             Ollama["Container: ollama<br/>Port: 11434"]
             
@@ -522,8 +522,8 @@ flowchart TD
         end
     end
     
-    Client((Navigateur Learner/Instructor)) -->|HTTP:80| Gateway
-    Admin((Administrateur)) -->|HTTP:5678| N8N
+    Client((Browser Learner/Instructor)) -->|HTTP:80| Gateway
+    Admin((Administrator)) -->|HTTP:5678| N8N
     
     Gateway -->|proxy_pass| Frontend
     Gateway -->|proxy_pass| UserSvc
