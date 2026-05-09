@@ -244,158 +244,163 @@ It models the structure of the main data entities and their relationships across
 
 ```mermaid
 classDiagram
-    direction TB
+    direction LR
 
     %% ── USER SERVICE (MongoDB) ──────────────────────────────
-    class User {
-        +ObjectId  _id
-        +String    email
-        +String    password
-        +String    role
-        +Boolean   isVerified
-        +Date      lastLogin
-        +String    emailVerificationToken
-        +Date      emailVerificationTokenExpires
-        +String    passwordResetToken
-        +Date      passwordResetTokenExpires
-        +String    pendingEmail
-        +String    emailUpdateToken
-        +Date      emailUpdateTokenExpires
-        +Date      createdAt
-        +Date      updatedAt
-        +login()
-        +register()
-        +comparePassword()
-    }
+    namespace UserService {
+        class User {
+            +ObjectId  _id
+            +String    email
+            +String    password
+            +String    role
+            +Boolean   isVerified
+            +Date      lastLogin
+            +String    emailVerificationToken
+            +Date      emailVerificationTokenExpires
+            +String    passwordResetToken
+            +Date      passwordResetTokenExpires
+            +String    pendingEmail
+            +String    emailUpdateToken
+            +Date      emailUpdateTokenExpires
+            +Date      createdAt
+            +Date      updatedAt
+            +login()
+            +register()
+            +comparePassword()
+        }
 
-    class Profile {
-        +String  firstName
-        +String  lastName
-        +String  phone
-        +String  avatar
-        +Date    dateOfBirth
-    }
+        class Profile {
+            +String  firstName
+            +String  lastName
+            +String  phone
+            +String  avatar
+            +Date    dateOfBirth
+        }
 
-    class Address {
-        +String  street
-        +String  city
-        +String  state
-        +String  country
-        +String  zipCode
-    }
+        class Address {
+            +String  street
+            +String  city
+            +String  state
+            +String  country
+            +String  zipCode
+        }
 
-    class Instructor {
-        +getCourses()
-        +getAnalytics()
-    }
+        class Instructor {
+            +getCourses()
+            +getAnalytics()
+        }
 
-    class Learner {
-        +getEnrollments()
-        +askAITutor()
-        +submitFeedback()
+        class Learner {
+            +getEnrollments()
+            +askAITutor()
+            +submitFeedback()
+        }
     }
 
     %% ── COURSE SERVICE (PostgreSQL) ─────────────────────────
-    class Course {
-        +UUID    id
-        +String  instructor_id
-        +String  title
-        +String  description
-        +String  short_description
-        +Float   price
-        +String  category
-        +String  subcategory
-        +String  level
-        +Integer duration_hours
-        +String  thumbnail_url
-        +Boolean published
-        +Boolean is_featured
-        +Float   rating
-        +Integer total_ratings
-        +Integer total_enrollments
-        +Date    created_at
-        +Date    updated_at
-        +addLesson()
-        +publish()
-    }
+    namespace CourseService {
+        class Course {
+            +UUID    id
+            +String  instructor_id
+            +String  title
+            +String  description
+            +String  short_description
+            +Float   price
+            +String  category
+            +String  subcategory
+            +String  level
+            +Integer duration_hours
+            +String  thumbnail_url
+            +Boolean published
+            +Boolean is_featured
+            +Float   rating
+            +Integer total_ratings
+            +Integer total_enrollments
+            +Date    created_at
+            +Date    updated_at
+            +addLesson()
+            +publish()
+        }
 
-    class Lesson {
-        +UUID    id
-        +UUID    course_id
-        +String  title
-        +String  description
-        +String  content_type
-        +String  content_url
-        +Integer duration_minutes
-        +Integer order_index
-        +Boolean is_preview
-        +Boolean is_published
-        +Date    created_at
-        +Date    updated_at
-        +complete()
-    }
+        class Lesson {
+            +UUID    id
+            +UUID    course_id
+            +String  title
+            +String  description
+            +String  content_type
+            +String  content_url
+            +Integer duration_minutes
+            +Integer order_index
+            +Boolean is_preview
+            +Boolean is_published
+            +Date    created_at
+            +Date    updated_at
+            +complete()
+        }
 
-    class Enrollment {
-        +UUID    id
-        +String  user_id
-        +UUID    course_id
-        +Date    enrolled_at
-        +Boolean completed
-        +Float   progress_percentage
-        +Date    last_accessed_at
-        +Date    completed_at
-        +Integer total_time_spent_minutes
-        +UUID    last_lesson_id
-        +Date    created_at
-        +Date    updated_at
-        +updateProgress()
-    }
+        class Enrollment {
+            +UUID    id
+            +String  user_id
+            +UUID    course_id
+            +Date    enrolled_at
+            +Boolean completed
+            +Float   progress_percentage
+            +Date    last_accessed_at
+            +Date    completed_at
+            +Integer total_time_spent_minutes
+            +UUID    last_lesson_id
+            +Date    created_at
+            +Date    updated_at
+            +updateProgress()
+        }
 
-    class LessonProgress {
-        +UUID    id
-        +UUID    enrollment_id
-        +UUID    lesson_id
-        +UUID    course_id
-        +Boolean completed
-        +Integer time_spent_minutes
-        +Date    last_accessed_at
-        +Date    completed_at
-        +Date    created_at
-        +Date    updated_at
-    }
+        class LessonProgress {
+            +UUID    id
+            +UUID    enrollment_id
+            +UUID    lesson_id
+            +UUID    course_id
+            +Boolean completed
+            +Integer time_spent_minutes
+            +Date    last_accessed_at
+            +Date    completed_at
+            +Date    created_at
+            +Date    updated_at
+        }
 
-    class Feedback {
-        +UUID    id
-        +UUID    course_id
-        +String  user_id
-        +Integer rating
-        +String  comment
-        +String  ai_summary
-        +Date    created_at
-        +Date    updated_at
+        class Feedback {
+            +UUID    id
+            +UUID    course_id
+            +String  user_id
+            +Integer rating
+            +String  comment
+            +String  ai_summary
+            +Date    created_at
+            +Date    updated_at
+        }
     }
 
     %% ── ANALYTICS SERVICE (PostgreSQL) ──────────────────────
-    class AnalyticsEvent {
-        +UUID      id
-        +EventType event_type
-        +String    user_id
-        +UUID      course_id
-        +UserRole  user_role
-        +Date      created_at
-        +Date      updated_at
-    }
+    namespace AnalyticsService {
+        class AnalyticsEvent {
+            +UUID      id
+            +EventType event_type
+            +String    user_id
+            +UUID      course_id
+            +UserRole  user_role
+            +Date      created_at
+            +Date      updated_at
+        }
 
-    class CourseDailyMetric {
-        +UUID    id
-        +UUID    course_id
-        +Date    metric_date
-        +Integer views_count
-        +Integer enrollments_count
-        +Date    created_at
-        +Date    updated_at
+        class CourseDailyMetric {
+            +UUID    id
+            +UUID    course_id
+            +Date    metric_date
+            +Integer views_count
+            +Integer enrollments_count
+            +Date    created_at
+            +Date    updated_at
+        }
     }
-
 
     %% ── Inheritance ─────────────────────────────────────────
     User <|-- Instructor : inherits
