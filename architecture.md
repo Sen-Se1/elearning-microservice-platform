@@ -44,8 +44,7 @@ flowchart TD
     n8n["n8n Automation<br/>(Node.js)"]
     
     DB_User[("User DB<br/>MongoDB")]
-    DB_Course[("Course DB<br/>PostgreSQL")]
-    DB_Analytics[("Analytics DB<br/>PostgreSQL")]
+    DB_Course[("Course & Analytics DB<br/>PostgreSQL")]
     Cache_Redis[("Cache<br/>Redis")]
     Storage[("Object Storage<br/>MinIO")]
     Ollama["Local LLM<br/>Ollama Llama3"]
@@ -62,7 +61,7 @@ flowchart TD
     UserSvc --> DB_User
     CourseSvc --> DB_Course
     CourseSvc --> Storage
-    AnalyticsSvc --> DB_Analytics
+    AnalyticsSvc --> DB_Course
     AnalyticsSvc --> Cache_Redis
     AITutorSvc --> Ollama
     
