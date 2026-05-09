@@ -210,11 +210,12 @@ It represents the possible interactions between actors (Learners and Instructors
 
 ```mermaid
 flowchart LR
-    %% Primary Actors (Left)
-    Guest((<i class='fa-solid fa-user'></i> Guest))
-    User((<i class='fa-solid fa-users'></i> User))
-    Learner((<i class='fa-solid fa-user-graduate'></i> Learner))
-    Instructor((<i class='fa-solid fa-user-tie'></i> Instructor))
+
+    %% Actors with icon style
+    Guest["👤<br/>Guest"]
+    User["👤<br/>User"]
+    Learner["🧑‍🎓<br/>Learner"]
+    Instructor["🧑‍🏫<br/>Instructor"]
 
     %% Actor Generalization
     Learner -. "inherits" .-> User
@@ -239,12 +240,12 @@ flowchart LR
         UC_Analytics(View Analytics Dashboard)
     end
 
-    %% Secondary Actors / Systems (Right)
+    %% Secondary Actors / Systems
     Ollama[AI Tutor - Ollama]
     N8N[n8n Automation]
     AnalyticSvc[Analytics Service]
 
-    %% ── Actor to Use Case associations ──
+    %% Associations
     Guest --- UC_Browse
     Guest --- UC_Reg
     User --- UC_Login
@@ -256,7 +257,7 @@ flowchart LR
     Instructor --- UC_Manage
     Instructor --- UC_Analytics
 
-    %% ── UML Stereotypes (Includes & Extends) ──
+    %% Includes & Extends
     UC_Reg -. "«include»" .-> UC_Verify
     UC_Login -. "«include»" .-> UC_Verify
     UC_Reset -. "«extend»" .-> UC_Login
@@ -270,7 +271,7 @@ flowchart LR
     UC_Chat -. "«extend»" .-> UC_Watch
     UC_Quiz -. "«extend»" .-> UC_Chat
 
-    %% ── Use Case to System associations ──
+    %% External Systems
     UC_Chat --- Ollama
     UC_Quiz --- Ollama
     UC_Feedback --- N8N
