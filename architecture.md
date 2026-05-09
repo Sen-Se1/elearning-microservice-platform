@@ -210,47 +210,41 @@ It represents the possible interactions between actors (Learners and Instructors
 
 ```mermaid
 flowchart LR
-    classDef actor  fill:none,stroke:none,font-weight:bold,font-size:14px,color:#1a1a2e
-    classDef uc     fill:#EEF4FF,stroke:#4A6CF7,stroke-width:1.5px,color:#1a1a2e,rx:30,ry:30
-    classDef sys    fill:#F8F9FF,stroke:#A0AEC0,stroke-width:2px,color:#1a1a2e
-
-    %% Left Actors (Users)
-    Guest["fa:fa-user Guest"]:::actor
-    User["fa:fa-users User"]:::actor
-    Learner["fa:fa-user-graduate Learner"]:::actor
-    Instructor["fa:fa-user-tie Instructor"]:::actor
-
-    %% Right Actors (External Systems)
-    Ollama["fa:fa-server AI Tutor (Ollama)"]:::sys
-    N8N["fa:fa-cogs n8n Automation"]:::sys
-    AnalyticSvc["fa:fa-chart-line Analytics Service"]:::sys
+    %% Primary Actors (Left)
+    Guest((Guest))
+    User((User))
+    Learner((Learner))
+    Instructor((Instructor))
 
     %% Actor Generalization
     Learner -. "inherits" .-> User
     Instructor -. "inherits" .-> User
 
-    subgraph Platform ["  ⬚  E-Learning Platform  "]
-        direction TB
+    subgraph Platform [E-Learning Platform]
+        UC_Browse(Browse Catalog)
+        UC_Reg(Register Account)
+        UC_Login(Log In)
+        UC_Verify(Verify Identity)
+        UC_Reset(Reset Password)
 
-        UC_Browse("Browse Catalog"):::uc
-        UC_Reg("Register Account"):::uc
-        UC_Login("Log In"):::uc
-        UC_Verify("Verify Identity"):::uc
-        UC_Reset("Reset Password"):::uc
+        UC_Enroll(Enroll in a Course)
+        UC_Watch(Watch Lessons)
+        UC_Track(Track Progress)
 
-        UC_Enroll("Enroll in a Course"):::uc
-        UC_Watch("Watch Lessons"):::uc
-        UC_Track("Track Progress"):::uc
-
-        UC_Chat("AI Q&A Chat"):::uc
-        UC_Quiz("Generate AI Quiz"):::uc
-        UC_Feedback("Submit Feedback"):::uc
+        UC_Chat(AI Q&A Chat)
+        UC_Quiz(Generate AI Quiz)
+        UC_Feedback(Submit Feedback)
         
-        UC_Manage("Manage Courses & Lessons"):::uc
-        UC_Analytics("View Analytics Dashboard"):::uc
+        UC_Manage(Manage Courses & Lessons)
+        UC_Analytics(View Analytics Dashboard)
     end
 
-    %% ── Primary Actor associations (Left) ───────────────────
+    %% Secondary Actors / Systems (Right)
+    Ollama[AI Tutor - Ollama]
+    N8N[n8n Automation]
+    AnalyticSvc[Analytics Service]
+
+    %% ── Actor to Use Case associations ──
     Guest --- UC_Browse
     Guest --- UC_Reg
     User --- UC_Login
@@ -262,21 +256,21 @@ flowchart LR
     Instructor --- UC_Manage
     Instructor --- UC_Analytics
 
-    %% ── UML Stereotypes (Includes & Extends) ────────────────
-    UC_Reg -. "<<Includes>>" .-> UC_Verify
-    UC_Login -. "<<Includes>>" .-> UC_Verify
-    UC_Reset -. "<<Extends>>" .-> UC_Login
+    %% ── UML Stereotypes (Includes & Extends) ──
+    UC_Reg -. "«include»" .-> UC_Verify
+    UC_Login -. "«include»" .-> UC_Verify
+    UC_Reset -. "«extend»" .-> UC_Login
     
-    UC_Enroll -. "<<Includes>>" .-> UC_Login
-    UC_Watch -. "<<Includes>>" .-> UC_Login
-    UC_Manage -. "<<Includes>>" .-> UC_Login
-    UC_Analytics -. "<<Includes>>" .-> UC_Login
+    UC_Enroll -. "«include»" .-> UC_Login
+    UC_Watch -. "«include»" .-> UC_Login
+    UC_Manage -. "«include»" .-> UC_Login
+    UC_Analytics -. "«include»" .-> UC_Login
     
-    UC_Track -. "<<Extends>>" .-> UC_Watch
-    UC_Chat -. "<<Extends>>" .-> UC_Watch
-    UC_Quiz -. "<<Extends>>" .-> UC_Chat
+    UC_Track -. "«extend»" .-> UC_Watch
+    UC_Chat -. "«extend»" .-> UC_Watch
+    UC_Quiz -. "«extend»" .-> UC_Chat
 
-    %% ── Secondary Actor associations (Right) ────────────────
+    %% ── Use Case to System associations ──
     UC_Chat --- Ollama
     UC_Quiz --- Ollama
     UC_Feedback --- N8N
