@@ -210,12 +210,11 @@ It represents the possible interactions between actors (Learners and Instructors
 
 ```mermaid
 flowchart LR
-
-    %% Actors with icon style
-    Guest["👤<br/>Guest"]
-    User["👤<br/>User"]
-    Learner["🧑‍🎓<br/>Learner"]
-    Instructor["🧑‍🏫<br/>Instructor"]
+    %% Primary Actors (Left)
+    Guest((Guest))
+    User((User))
+    Learner((Learner))
+    Instructor((Instructor))
 
     %% Actor Generalization
     Learner -. "inherits" .-> User
@@ -240,12 +239,12 @@ flowchart LR
         UC_Analytics(View Analytics Dashboard)
     end
 
-    %% Secondary Actors / Systems
+    %% Secondary Actors / Systems (Right)
     Ollama[AI Tutor - Ollama]
     N8N[n8n Automation]
     AnalyticSvc[Analytics Service]
 
-    %% Associations
+    %% ── Actor to Use Case associations ──
     Guest --- UC_Browse
     Guest --- UC_Reg
     User --- UC_Login
@@ -257,7 +256,7 @@ flowchart LR
     Instructor --- UC_Manage
     Instructor --- UC_Analytics
 
-    %% Includes & Extends
+    %% ── UML Stereotypes (Includes & Extends) ──
     UC_Reg -. "«include»" .-> UC_Verify
     UC_Login -. "«include»" .-> UC_Verify
     UC_Reset -. "«extend»" .-> UC_Login
@@ -271,7 +270,7 @@ flowchart LR
     UC_Chat -. "«extend»" .-> UC_Watch
     UC_Quiz -. "«extend»" .-> UC_Chat
 
-    %% External Systems
+    %% ── Use Case to System associations ──
     UC_Chat --- Ollama
     UC_Quiz --- Ollama
     UC_Feedback --- N8N
