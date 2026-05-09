@@ -19,7 +19,7 @@ graph TD
     UserSvc --> DB_Mongo[(MongoDB)]
     AnalyticsSvc --> DB_PG
     
-    AITutorSvc --> DB_Redis[(Redis)]
+    AnalyticsSvc --> DB_Redis[(Redis)]
     AITutorSvc --> Ollama[Ollama Local LLM]
     CourseSvc --> DB_Minio[(MinIO)]
     
