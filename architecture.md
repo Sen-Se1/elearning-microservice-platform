@@ -396,32 +396,6 @@ classDiagram
         +Date    updated_at
     }
 
-    %% ── AI TUTOR SERVICE (in-memory / Ollama) ───────────────
-    class ChatMessage {
-        +String role
-        +String content
-    }
-
-    class ChatSession {
-        +String         course_id
-        +String         lesson_id
-        +Boolean        stream
-        +List messages
-    }
-
-    class QuizQuestion {
-        +String       question
-        +List options
-        +String       correct_answer
-        +String       explanation
-    }
-
-    class QuizSession {
-        +String         course_id
-        +String         lesson_id
-        +Integer        num_questions
-        +List questions
-    }
 
     %% ── Inheritance ─────────────────────────────────────────
     User <|-- Instructor : inherits
@@ -446,11 +420,6 @@ classDiagram
     Course "1" --> "*" AnalyticsEvent    : generates
     Course "1" --> "*" CourseDailyMetric : aggregated in
 
-    %% ── AI Tutor Service ────────────────────────────────────
-    ChatSession  "1" *-- "*" ChatMessage  : contains
-    QuizSession  "1" *-- "*" QuizQuestion : contains
-    ChatSession  --> Lesson : references
-    QuizSession  --> Lesson : references
 ```
 
 ### Diagramme de Séquence (Sequence Diagram)
