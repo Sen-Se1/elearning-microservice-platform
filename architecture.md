@@ -406,15 +406,18 @@ classDiagram
     User *-- Address : has
 
     %% ── Cross-service links (logical) ───────────────────────
-    Instructor "1" --> "*" Course      : creates
-    Learner    "1" --> "*" Enrollment  : enrolls in
-    Learner    "1" --> "*" Feedback    : writes
+    Instructor "1" --> "*" Course         : creates
+    Learner    "1" --> "*" Enrollment     : enrolls in
+    Learner    "1" --> "*" Feedback       : writes
+    User       "1" ..> "*" AnalyticsEvent : triggers
 
     %% ── Course Service internal ─────────────────────────────
     Course     "1" *-- "*" Lesson         : contains
     Course     "1" *-- "*" Enrollment     : has
     Course     "1" *-- "*" Feedback       : receives
     Enrollment "1" *-- "*" LessonProgress : tracks
+    Course     "1" --> "*" LessonProgress : scoped to
+    Lesson     "1" ..> "*" LessonProgress : referenced by
 
     %% ── Analytics Service ───────────────────────────────────
     Course "1" --> "*" AnalyticsEvent    : generates
