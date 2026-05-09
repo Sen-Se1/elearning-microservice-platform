@@ -211,7 +211,7 @@ It represents the possible interactions between actors (Learners and Instructors
 ```mermaid
 flowchart LR
     %% Primary Actors (Left)
-    Guest((Guest))
+    actor((Guest))
     User((User))
     Learner((Learner))
     Instructor((Instructor))
