@@ -14,12 +14,12 @@ flowchart TD
     title["C4 Level 1: System Context Diagram"]
     style title fill:none,stroke:none,font-weight:bold,font-size:16px
     
-    Student((Apprenant))
-    Instructor((Instructeur))
+    Learner((Learner))
+    Instructor((Instructor))
     
     System[Plateforme E-learning]
     
-    Student -->|Consulte les cours, interagit avec l'IA, soumet des feedbacks| System
+    Learner -->|Consulte les cours, interagit avec l'IA, soumet des feedbacks| System
     Instructor -->|Crée des cours, gère les leçons, consulte les analytiques| System
 ```
 
@@ -31,8 +31,8 @@ flowchart TD
     title["C4 Level 2: Container Diagram"]
     style title fill:none,stroke:none,font-weight:bold,font-size:16px
 
-    Student((Apprenant))
-    Instructor((Instructeur))
+    Learner((Learner))
+    Instructor((Instructor))
 
     Gateway["API Gateway<br/>(Nginx)"]
     Frontend["Learning Portal<br/>(Next.js, React)"]
@@ -49,7 +49,7 @@ flowchart TD
     Storage[("Object Storage<br/>MinIO")]
     Ollama["Local LLM<br/>Ollama Llama3"]
 
-    Student --> Gateway
+    Learner --> Gateway
     Instructor --> Gateway
     
     Gateway --> Frontend
@@ -206,37 +206,66 @@ flowchart TD
 ## 2. Diagrammes UML
 
 ### Diagramme de Cas d'Utilisation (Use Case Diagram)
-Il représente les interactions possibles entre les acteurs (Apprenants et Instructeurs) et les fonctionnalités de la plateforme.
+Il représente les interactions possibles entre les acteurs (Learners et Instructors) et les fonctionnalités de la plateforme.
 
 ```mermaid
 flowchart LR
-    title["UML Use Case Diagram"]
-    style title fill:none,stroke:none,font-weight:bold,font-size:16px
+    classDef actor  fill:none,stroke:none,font-weight:bold,font-size:14px,color:#1a1a2e
+    classDef uc     fill:#EEF4FF,stroke:#4A6CF7,stroke-width:1.5px,color:#1a1a2e,rx:30,ry:30
+    classDef sys    fill:#F8F9FF,stroke:#A0AEC0,stroke-width:2px,color:#1a1a2e
+    classDef group  fill:#F0F4FF,stroke:#BCC8F5,stroke-dasharray:4 2,color:#4A6CF7,font-weight:bold
 
-    Student((Apprenant))
-    Instructor((Instructeur))
-    
-    subgraph E-Learning Platform
-        UC1(S'inscrire / Se connecter)
-        UC2(Créer et gérer des cours)
-        UC3(S'inscrire à un cours)
-        UC4(Suivre la progression)
-        UC5(Poser des questions à l'IA)
-        UC6(Générer des Quiz avec l'IA)
-        UC7(Soumettre un feedback)
-        UC8(Consulter les statistiques / analytiques)
+    Learner["fa:fa-user Learner"]:::actor
+    Instructor["fa:fa-user-tie Instructor"]:::actor
+
+    subgraph sys ["  ⬚  E-Learning Platform  "]
+        direction TB
+
+        subgraph g1 ["① Registration & Authentication"]
+            UC1("Register"):::uc
+            UC2("Login / Logout"):::uc
+            UC3("Reset Password"):::uc
+        end
+
+        subgraph g2 ["② Course Tracking"]
+            UC4("Enroll in a Course"):::uc
+            UC5("Watch Lessons"):::uc
+            UC6("Track Progress"):::uc
+        end
+
+        subgraph g3 ["③ AI Tutor — Q&A & Quiz"]
+            UC7("AI Q&A Chat"):::uc
+            UC8("Generate AI Quiz"):::uc
+        end
+
+        subgraph g4 ["④ Feedback & Analytics"]
+            UC9("Submit Feedback"):::uc
+            UC10("View Analytics Dashboard"):::uc
+            UC11("Manage Courses & Lessons"):::uc
+        end
     end
-    
-    Student --> UC1
-    Student --> UC3
-    Student --> UC4
-    Student --> UC5
-    Student --> UC6
-    Student --> UC7
-    
+
+    %% ── Learner associations ────────────────────────────────
+    Learner --> UC1
+    Learner --> UC2
+    Learner --> UC4
+    Learner --> UC5
+    Learner --> UC6
+    Learner --> UC7
+    Learner --> UC9
+
+    %% ── Instructor associations ─────────────────────────────
     Instructor --> UC1
     Instructor --> UC2
-    Instructor --> UC8
+    Instructor --> UC10
+    Instructor --> UC11
+
+    %% ── UML stereotypes ─────────────────────────────────────
+    UC4 -. "<<include>>" .-> UC2
+    UC7 -. "<<extend>>"  .-> UC8
+    UC5 -. "<<include>>" .-> UC4
+    UC6 -. "<<include>>" .-> UC5
+    UC1 -. "<<include>>" .-> UC3
 ```
 
 ### Diagramme de Classes (Class Diagram)
@@ -435,33 +464,33 @@ Exemple de flux métier : Inscription ➔ Accès au cours ➔ Interaction AI Tut
 
 ```mermaid
 sequenceDiagram
-    actor Student
+    actor Learner
     participant Portal as Learning Portal
     participant UserSvc as User Service
     participant CourseSvc as Course Service
     participant AISvc as AI Tutor Service
     participant n8n as n8n Automation
     
-    Student->>Portal: S'inscrit & Se connecte
+    Learner->>Portal: S'inscrit & Se connecte
     Portal->>UserSvc: POST /api/v1/users/register & /login
     UserSvc-->>Portal: Retourne le Token JWT
     
-    Student->>Portal: S'inscrit au Cours
+    Learner->>Portal: S'inscrit au Cours
     Portal->>CourseSvc: POST /api/v1/enrollments/
     CourseSvc-->>Portal: Inscription réussie
     
-    Student->>Portal: Regarde la leçon & Pose une question
+    Learner->>Portal: Regarde la leçon & Pose une question
     Portal->>AISvc: POST /api/v1/tutor/chat
     AISvc-->>Portal: Retourne la réponse de l'IA (Ollama)
     
-    Student->>Portal: Termine le cours & Laisse un Feedback
+    Learner->>Portal: Termine le cours & Laisse un Feedback
     Portal->>CourseSvc: POST /api/v1/feedback/
     CourseSvc-->>Portal: Feedback Sauvegardé
     CourseSvc->>n8n: Déclenche Webhook (Asynchrone)
     
     n8n->>n8n: Analyse de sentiment via IA (LLM)
-    n8n->>UserSvc: Récupère les infos de l'Instructeur
-    n8n->>Instructor: Notifie l'instructeur (Email/Alerte)
+    n8n->>UserSvc: Récupère les infos de l'Instructor
+    n8n->>Instructor: Notifie l'Instructor (Email/Alerte)
 ```
 
 ### Diagramme de Déploiement (Deployment Diagram)
@@ -493,7 +522,7 @@ flowchart TD
         end
     end
     
-    Client((Navigateur Apprenant/Instructeur)) -->|HTTP:80| Gateway
+    Client((Navigateur Learner/Instructor)) -->|HTTP:80| Gateway
     Admin((Administrateur)) -->|HTTP:5678| N8N
     
     Gateway -->|proxy_pass| Frontend
