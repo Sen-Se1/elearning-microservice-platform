@@ -29,6 +29,8 @@ spec:
               value: "production"
             - name: WEBHOOK_URL
               value: "http://192.168.66.10:30567/"
+            - name: N8N_SECURE_COOKIE
+              value: "false"
           resources:
             requests:
               memory: "128Mi"
