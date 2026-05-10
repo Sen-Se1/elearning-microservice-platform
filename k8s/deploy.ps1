@@ -6,7 +6,7 @@
 # Requires kubectl configured with your cluster kubeconfig
 # =============================================================
 $ErrorActionPreference = "Stop"
-
+Set-Location $PSScriptRoot
 function Log    { param($m) Write-Host "[OK] $m" -ForegroundColor Green }
 function Warn   { param($m) Write-Host "[..] $m" -ForegroundColor Yellow }
 function Header { param($m) Write-Host "`n=== $m ===" -ForegroundColor Cyan }
