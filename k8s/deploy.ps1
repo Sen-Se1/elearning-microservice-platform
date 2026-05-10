@@ -53,8 +53,8 @@ kubectl rollout status deployment/minio    -n elearning --timeout=120s
 Log "Databases ready"
 
 Header "Ollama LLM"
-kubectl apply -f deployments/ollama.yaml
-kubectl apply -f services/ollama.yaml
+kubectl apply -f deployments/ai/ollama.yaml
+kubectl apply -f services/ai/ollama.yaml
 Warn "Waiting for Ollama (llama3 pull may take several minutes)..."
 kubectl rollout status deployment/ollama -n elearning --timeout=300s
 Log "Ollama ready"
