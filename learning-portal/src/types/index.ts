@@ -41,6 +41,7 @@ export interface Lesson {
   description?: string;
   content_type: 'video' | 'text' | 'pdf' | 'quiz' | 'audio' | 'image';
   content_url?: string;
+  thumbnail_url?: string | null;
   duration_minutes: number;
   order_index: number;
   is_preview: boolean;

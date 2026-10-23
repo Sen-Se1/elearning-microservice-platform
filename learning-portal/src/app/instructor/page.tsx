@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Navbar } from '@/components/shared/Navbar';
 import { useAuth } from '@/components/shared/AuthProvider';
-import { courseApi, analyticsApi } from '@/lib/api';
+import { courseApi, analyticsApi, userApi } from '@/lib/api';
 import { Course } from '@/types';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -267,7 +267,30 @@ export default function InstructorPage() {
     setLoadingCourseEnrollments(true);
     try {
       const res = await courseApi.get(`/enrollments/course/${course.id}/enrollments`);
-      setSelectedCourseEnrollments(res.data.items || []);
+      const enrollments = res.data.items || [];
+      
+      // Enrich enrollments with user names from user service
+      const enrichedEnrollments = await Promise.all(enrollments.map(async (enroll: any) => {
+        try {
+          const userRes = await userApi.get(`/${enroll.user_id}`);
+          const userData = userRes.data.data || userRes.data;
+          return {
+            ...enroll,
+            user_name: userData.profile?.firstName || userData.firstName || 'Unknown',
+            user_last_name: userData.profile?.lastName || userData.lastName || '',
+            user_email: userData.email || ''
+          };
+        } catch {
+          return {
+            ...enroll,
+            user_name: 'Unknown',
+            user_last_name: '',
+            user_email: ''
+          };
+        }
+      }));
+      
+      setSelectedCourseEnrollments(enrichedEnrollments);
     } catch {
       toast.error('Failed to load course enrollments');
     } finally {
@@ -842,14 +865,21 @@ export default function InstructorPage() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {selectedCourseEnrollments.map((enroll, i) => (
-                      <div key={enroll.enrollment_id} className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
-                        <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center font-bold text-indigo-400 text-sm border border-white/5">
-                          {enroll.user_id.slice(0, 1).toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2">
-                             <p className="text-sm font-bold truncate">Student ID: {enroll.user_id.slice(0, 8)}...</p>
+                    {selectedCourseEnrollments.map((enroll, i) => {
+                      const firstName = enroll.user_name || '';
+                      const lastName = enroll.user_last_name || '';
+                      const displayName = `${firstName} ${lastName}`.trim() || 'Unknown Student';
+                      const avatarInitial = (firstName || lastName || 'U').slice(0, 1).toUpperCase();
+                      return (
+                        <div key={enroll.enrollment_id} className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+                          <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center font-bold text-indigo-400 text-sm border border-white/5">
+                            {avatarInitial}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                               <p className="text-sm font-bold truncate">{displayName}</p>
+                               <p className="text-[10px] text-muted-foreground">{enroll.user_email || 'No email'}</p>
+                            </div>
                              {enroll.completed && <Badge className="bg-emerald-500/10 text-emerald-500 border-none text-[10px]">Completed</Badge>}
                           </div>
                           <div className="flex items-center gap-3 mt-1.5">
@@ -863,8 +893,8 @@ export default function InstructorPage() {
                              <span className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold">Joined: {new Date(enroll.enrolled_at).toLocaleDateString()}</span>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>

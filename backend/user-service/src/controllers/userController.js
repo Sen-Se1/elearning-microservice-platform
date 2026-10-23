@@ -217,6 +217,21 @@ exports.login = asyncHandler(async (req, res, next) => {
 });
 
 /**
+ * @desc    Get user by ID (public - for instructor info on course pages)
+ * @route   GET /api/v1/users/:id
+ * @access  Public
+ */
+exports.getUserById = asyncHandler(async (req, res, next) => {
+  const user = await User.findById(req.params.id).select("-password -emailVerificationToken -passwordResetToken");
+  if (!user) return next(new ApiError("User not found", 404));
+
+  res.status(200).json({
+    status: "success",
+    data: user,
+  });
+});
+
+/**
  * @desc    Get current user
  * @route   GET /api/v1/users/me
  * @access  Private

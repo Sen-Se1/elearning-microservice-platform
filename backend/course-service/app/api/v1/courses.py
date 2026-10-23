@@ -11,7 +11,7 @@ from ...schemas.course import (
     CourseListResponse, CourseLevel, CourseCreateForm, CourseUpdateResponse
 )
 from ...core.auth import get_current_user, get_current_instructor, get_current_user_optional, get_token_optional
-from ...core.minio_client import minio_client
+from ...core.local_storage import local_storage
 from ...core.analytics import record_analytics_event
 
 router = APIRouter()
@@ -182,7 +182,7 @@ async def create_course(
         # Upload thumbnail if provided
         thumbnail_url = None
         if thumbnail_file and thumbnail_file.filename:
-            thumbnail_url, _ = await minio_client.upload_course_thumbnail(
+            thumbnail_url, _ = await local_storage.upload_course_thumbnail(
                 thumbnail_file, str(db_course.id)
             )
             
@@ -253,7 +253,7 @@ async def update_course(
         # Handle new thumbnail upload
         if thumbnail_file and thumbnail_file.filename:
             # Validate and upload new thumbnail (handles old file deletion internally)
-            new_thumbnail_url, _ = await minio_client.upload_course_thumbnail(
+            new_thumbnail_url, _ = await local_storage.upload_course_thumbnail(
                 thumbnail_file, 
                 str(course_id),
                 delete_old=True,
@@ -334,8 +334,8 @@ def delete_course(
     
     This endpoint will:
     - Delete the course from the database
-    - Delete all associated lesson content files from MinIO storage
-    - Delete the course thumbnail from MinIO storage
+    - Delete all associated lesson content files from local storage
+    - Delete the course thumbnail from local storage
     """
     db_course = crud_course.course.get(db, course_id=course_id)
     if not db_course:
@@ -362,23 +362,23 @@ def delete_course(
     # Delete course from database first
     crud_course.course.delete(db, course_id=course_id)
     
-    # Delete all lesson content files from MinIO
+    # Delete all lesson content files from local storage
     for lesson in course_lessons:
         if lesson.content_url:
             try:
-                object_name = minio_client.extract_object_name(lesson.content_url)
+                object_name = local_storage.extract_object_name(lesson.content_url)
                 if object_name:
-                    minio_client.delete_file(object_name)
+                    local_storage.delete_file(object_name)
             except Exception as e:
                 # Log error but don't fail the request (course is already deleted)
                 print(f"Warning: Failed to delete lesson content for lesson {lesson.id}: {e}")
     
-    # Delete course thumbnail from MinIO if it exists
+    # Delete course thumbnail from local storage if it exists
     if thumbnail_url:
         try:
-            object_name = minio_client.extract_object_name(thumbnail_url)
+            object_name = local_storage.extract_object_name(thumbnail_url)
             if object_name:
-                minio_client.delete_file(object_name)
+                local_storage.delete_file(object_name)
         except Exception as e:
             # Log error but don't fail the request (course is already deleted)
             print(f"Warning: Failed to delete thumbnail for deleted course: {e}")

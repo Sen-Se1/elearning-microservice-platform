@@ -1,8 +1,10 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import logging
+import os
 
 from .core.config import get_settings
 from .database import create_tables, engine
@@ -26,7 +28,7 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting Course Service...")
     logger.info(f"Database URL: {settings.database_url}")
-    logger.info(f"MinIO Endpoint: {settings.minio_endpoint}")
+    logger.info(f"Upload directory: {settings.upload_dir}")
     
     # Create tables if they don't exist
     try:
@@ -60,6 +62,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve uploaded files (course thumbnails, lesson content)
+upload_dir = os.path.abspath(settings.upload_dir)
+os.makedirs(upload_dir, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=upload_dir), name="uploads")
 
 # Health check endpoint
 @app.get("/health", tags=["Health"])

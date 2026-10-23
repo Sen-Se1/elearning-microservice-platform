@@ -16,12 +16,9 @@ class Settings(BaseSettings):
     jwt_secret: str = Field(..., validation_alias="JWT_SECRET_KEY")
     jwt_algorithm: str = Field(default="HS256", validation_alias="JWT_ALGORITHM")
     
-    # MinIO
-    minio_endpoint: str = Field(..., validation_alias="MINIO_ENDPOINT")
-    minio_access_key: str = Field(..., validation_alias="MINIO_ACCESS_KEY")
-    minio_secret_key: str = Field(..., validation_alias="MINIO_SECRET_KEY")
-    minio_bucket_name: str = Field(default="courses-media", validation_alias="MINIO_BUCKET_NAME")
-    minio_secure: bool = Field(default=False, validation_alias="MINIO_SECURE")
+    # Local Storage
+    upload_dir: str = Field(default="./upload", validation_alias="UPLOAD_DIR")
+    base_url: str = Field(default="http://localhost:8001", validation_alias="BASE_URL")
     
     # CORS
     cors_origins: list = ["*"]
@@ -30,7 +27,7 @@ class Settings(BaseSettings):
     analytics_service_url: str = Field(default="http://analytics-service:8003", validation_alias="ANALYTICS_SERVICE_URL")
     
     # n8n Automation
-    n8n_webhook_url: str = Field(default="http://n8n:5678/webhook-test/feedback", validation_alias="N8N_FEEDBACK_WEBHOOK_URL")
+    n8n_webhook_url: str = Field(default="http://localhost:5678/webhook/feedback", validation_alias="N8N_FEEDBACK_WEBHOOK_URL")
     
     class Config:
         env_file = "../../.env"

@@ -11,7 +11,7 @@ from ...schemas.lesson import (
     LessonListResponse, ContentType
 )
 from ...core.auth import get_current_user, get_current_instructor, get_current_student, get_current_user_optional
-from ...core.minio_client import minio_client
+from ...core.local_storage import local_storage
 
 router = APIRouter()
 
@@ -156,7 +156,7 @@ async def create_lesson(
         # Upload file if provided
         final_content_url = content_url
         if content_file and content_file.filename:
-            final_content_url = await minio_client.upload_lesson_content(
+            final_content_url = await local_storage.upload_lesson_content(
                 content_file, 
                 str(course_id),
                 str(uuid.uuid4()),  # Temporary lesson ID
@@ -293,14 +293,14 @@ async def update_lesson(
     
     # Handle file upload if provided
     if content_file and content_file.filename:
-        # Delete old content file from MinIO if it exists
+        # Delete old content file from local storage if it exists
         if db_lesson.content_url:
-            old_object_name = minio_client.extract_object_name(db_lesson.content_url)
+            old_object_name = local_storage.extract_object_name(db_lesson.content_url)
             if old_object_name:
-                minio_client.delete_file(old_object_name)
+                local_storage.delete_file(old_object_name)
         
         # Upload new file
-        new_content_url = await minio_client.upload_lesson_content(
+        new_content_url = await local_storage.upload_lesson_content(
             content_file,
             str(db_lesson.course_id),
             str(lesson_id),
@@ -308,11 +308,11 @@ async def update_lesson(
         )
         update_data["content_url"] = new_content_url
     elif content_url is not None:
-        # If changing to a different URL, delete old content file from MinIO
+        # If changing to a different URL, delete old content file from local storage
         if db_lesson.content_url and db_lesson.content_url != content_url:
-            old_object_name = minio_client.extract_object_name(db_lesson.content_url)
+            old_object_name = local_storage.extract_object_name(db_lesson.content_url)
             if old_object_name:
-                minio_client.delete_file(old_object_name)
+                local_storage.delete_file(old_object_name)
         
         update_data["content_url"] = content_url
     
@@ -353,11 +353,11 @@ def delete_lesson(
             detail="Not authorized to delete this lesson"
         )
     
-    # Delete content file from MinIO if exists
+    # Delete content file from local storage if exists
     if db_lesson.content_url:
-        old_object_name = minio_client.extract_object_name(db_lesson.content_url)
+        old_object_name = local_storage.extract_object_name(db_lesson.content_url)
         if old_object_name:
-            minio_client.delete_file(old_object_name)
+            local_storage.delete_file(old_object_name)
     
     # Delete lesson from database
     crud_lesson.lesson.delete(db, lesson_id=lesson_id)

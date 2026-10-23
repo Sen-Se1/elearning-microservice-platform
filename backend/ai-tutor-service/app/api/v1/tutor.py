@@ -3,6 +3,7 @@ from fastapi.responses import StreamingResponse
 from ...schemas.tutor import ChatRequest, ChatResponse, QuizRequest, QuizResponse, RecommendationResponse
 from ...services.llm_service import llm_service
 from ...services.external_service import external_service
+from ...services.lesson_content_service import lesson_content_service
 from ...auth import get_current_user, get_current_user_optional
 from ...core.config import settings
 from typing import Optional
@@ -33,7 +34,7 @@ async def chat(request: ChatRequest, current_user: Optional[dict] = Depends(get_
             except: pass
 
         content = await llm_service.get_chat_response(request, context=context)
-        return ChatResponse(content=content, model=settings.LLM_MODEL)
+        return ChatResponse(content=content, model=settings.GEMINI_MODEL)
     except Exception as e:
         logger.exception("Error in chat endpoint")
         raise HTTPException(status_code=500, detail=str(e))
@@ -73,28 +74,48 @@ async def generate_quiz(
     authorization: str = Header(...)
 ):
     """
-    Generate a quiz based on course content
+    Generate a quiz based on specific lesson content (txt, pdf, audio, video, image, youtube) or course
     """
     token = authorization.split(" ")[1]
     try:
         # 1. Fetch course details
         course = await external_service.get_course_details(request.course_id, token)
         
-        # 2. Fetch all lessons for the course to get deeper context
-        lessons_data = await external_service.get_course_lessons(request.course_id, token)
-        lessons = lessons_data.get("items", [])
-        
-        # 3. Build context from lessons (Title and Description)
-        context = f"Course: {course['title']}\n"
-        if lessons:
-            context += "Lessons and Topics covered:\n"
-            for i, lesson in enumerate(lessons, 1):
-                context += f"{i}. {lesson['title']}: {lesson.get('description', '')}\n"
+        inline_parts = []
+        context = ""
+
+        # 2. If a specific lesson is requested, extract content from that lesson (txt, pdf, audio, video, img, or YouTube)
+        if request.lesson_id:
+            lesson = None
+            try:
+                lesson = await external_service.get_lesson_details(request.lesson_id, token)
+            except Exception as e:
+                logger.warning(f"Direct lesson fetch failed, searching in course lessons: {e}")
+
+            if not lesson:
+                lessons_data = await external_service.get_course_lessons(request.course_id, token)
+                items = lessons_data.get("items", [])
+                lesson = next((l for l in items if str(l.get("id")) == str(request.lesson_id)), None)
+
+            if lesson:
+                logger.info(f"Generating quiz for lesson: {lesson.get('title')} (type: {lesson.get('content_type')})")
+                context, inline_parts = await lesson_content_service.extract_lesson_content(lesson, course)
+            else:
+                context = f"Course: {course.get('title', '')}\nDescription: {course.get('description', '')}"
         else:
-            context += f"Description: {course['description']}"
+            # Fallback to course-level context across all lessons
+            lessons_data = await external_service.get_course_lessons(request.course_id, token)
+            lessons = lessons_data.get("items", [])
+            context = f"Course: {course['title']}\n"
+            if lessons:
+                context += "Lessons and Topics covered:\n"
+                for i, lesson in enumerate(lessons, 1):
+                    context += f"{i}. {lesson['title']}: {lesson.get('description', '')}\n"
+            else:
+                context += f"Description: {course.get('description', '')}"
         
-        # 4. Generate quiz using LLM
-        questions = await llm_service.generate_quiz(request, context)
+        # 3. Generate quiz using LLM (supporting text and multimodal inline parts)
+        questions = await llm_service.generate_quiz(request, context, inline_parts=inline_parts)
         return QuizResponse(course_id=request.course_id, questions=questions)
     except Exception as e:
         logger.exception("Error in quiz endpoint")

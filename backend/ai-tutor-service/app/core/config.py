@@ -8,10 +8,9 @@ class Settings(BaseSettings):
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
     
-    # LLM Settings (Local Ollama default)
-    LLM_API_URL: str = Field(default="http://ollama:11434/v1", validation_alias="LLM_API_URL")
-    LLM_MODEL: str = Field(default="llama3", validation_alias="LLM_MODEL")
-    LLM_API_KEY: str = Field(default="ollama", validation_alias="LLM_API_KEY") 
+    # LLM Settings (Gemini)
+    GEMINI_API_KEY: str = Field(..., validation_alias="GEMINI_API_KEY")
+    GEMINI_MODEL: str = Field(default="gemini-3.5-flash-lite", validation_alias="GEMINI_MODEL")
     
     # External Services
     COURSE_SERVICE_URL: str = Field(default="http://course-service:8001", validation_alias="COURSE_SERVICE_URL")

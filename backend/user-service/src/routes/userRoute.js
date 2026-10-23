@@ -20,6 +20,7 @@ const {
   login,
   forgotPassword,
   resetPassword,
+  getUserById,
   getMe,
   updateMe,
   requestEmailUpdate,
@@ -52,6 +53,7 @@ router.put(
   resetPassword
 );
 router.get("/me", protect, getMe);
+router.get("/:id", getUserById);
 router.put("/update-me", protect, updateMeValidator, updateMe);
 router.post(
   "/request-email-update",

@@ -37,10 +37,9 @@ header "Persistent Volume Claims"
 kubectl apply -f volumes/pvc-postgres.yaml
 kubectl apply -f volumes/pvc-mongodb.yaml
 kubectl apply -f volumes/pvc-redis.yaml
-kubectl apply -f volumes/pvc-minio.yaml
 warn "Waiting for PVCs to bind..."
 kubectl wait --for=condition=Bound \
-  pvc/pvc-postgres pvc/pvc-mongodb pvc/pvc-redis pvc/pvc-minio \
+  pvc/pvc-postgres pvc/pvc-mongodb pvc/pvc-redis \
   -n elearning --timeout=120s
 log "All PVCs bound"
 
@@ -48,24 +47,14 @@ header "Database Deployments"
 kubectl apply -f deployments/postgres.yaml
 kubectl apply -f deployments/mongodb.yaml
 kubectl apply -f deployments/redis.yaml
-kubectl apply -f deployments/minio.yaml
 kubectl apply -f services/postgres.yaml
 kubectl apply -f services/mongodb.yaml
 kubectl apply -f services/redis.yaml
-kubectl apply -f services/minio.yaml
 warn "Waiting for databases..."
 kubectl rollout status deployment/postgres -n elearning --timeout=120s
 kubectl rollout status deployment/mongo    -n elearning --timeout=120s
 kubectl rollout status deployment/redis    -n elearning --timeout=120s
-kubectl rollout status deployment/minio    -n elearning --timeout=120s
 log "Databases ready"
-
-header "Ollama LLM"
-kubectl apply -f deployments/ai/ollama.yaml
-kubectl apply -f services/ai/ollama.yaml
-warn "Waiting for Ollama (llama3 pull may take several minutes)..."
-kubectl rollout status deployment/ollama -n elearning --timeout=300s
-log "Ollama ready"
 
 header "n8n"
 kubectl apply -f deployments/n8n.yaml
@@ -105,7 +94,6 @@ echo -e "==================================================${NC}"
 echo ""
 echo "  🌐 App:            http://192.168.66.10:30080"
 echo "  🔧 n8n:            http://192.168.66.10:30567"
-echo "  📦 MinIO Console:  http://192.168.66.10:30901"
 echo ""
 kubectl get pods -n elearning
 echo ""

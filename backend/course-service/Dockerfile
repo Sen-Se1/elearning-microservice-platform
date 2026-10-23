@@ -24,5 +24,8 @@ USER appuser
 # Expose port
 EXPOSE 8001
 
+# Ensure upload directory has correct permissions for appuser
+RUN mkdir -p /app/upload && chown -R appuser:appuser /app/upload
+
 # Run application
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${COURSE_BACKEND_PORT}"]
+CMD ["sh", "-c", "chown -R appuser:appuser /app/upload && uvicorn app.main:app --host 0.0.0.0 --port ${COURSE_BACKEND_PORT}"]

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Navbar } from '@/components/shared/Navbar';
-import { courseApi, analyticsApi } from '@/lib/api';
+import { courseApi, analyticsApi, userApi } from '@/lib/api';
 import { Course, Lesson } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -34,6 +34,7 @@ export default function CourseDetailPage() {
   const { user } = useAuth();
   const [course, setCourse] = useState<Course | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [instructor, setInstructor] = useState<{ firstName?: string; lastName?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
   const [myRating, setMyRating] = useState(5);
@@ -51,6 +52,17 @@ export default function CourseDetailPage() {
           courseApi.get(`/feedback/course/${id}`).catch(() => ({ data: [] })),
         ]);
         setCourse(courseRes.data);
+
+        // Fetch instructor info
+        try {
+          const instRes = await userApi.get(`/${courseRes.data.instructor_id}`);
+          const userData = instRes.data.data || instRes.data;
+          // User data has profile nested
+          setInstructor(userData.profile || userData);
+        } catch (e) {
+          console.error('Failed to fetch instructor:', e);
+        }
+
         const lessonItems = lessonsRes.data.items || lessonsRes.data;
         setLessons(lessonItems.sort((a: any, b: any) => a.order_index - b.order_index));
         const feedbackItems = feedbackRes.data || [];
@@ -158,7 +170,9 @@ export default function CourseDetailPage() {
               <div className="w-12 h-12 rounded-full bg-zinc-800" />
               <div>
                 <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Instructor</p>
-                <p className="font-bold">Dr. Sarah Johnson</p>
+                <p className="font-bold">
+                  {instructor ? `${instructor.firstName || ''} ${instructor.lastName || ''}`.trim() || 'Unknown Instructor' : 'Loading...'}
+                </p>
               </div>
             </div>
           </div>
@@ -167,11 +181,6 @@ export default function CourseDetailPage() {
             <Card className="glass border-white/20 p-2 overflow-hidden shadow-2xl">
                <div className="aspect-video relative rounded-xl overflow-hidden mb-6">
                  <img src={getMediaUrl(course.thumbnail_url)} alt="" className="w-full h-full object-cover" />
-                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                    <Button variant="ghost" size="icon" className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-md border border-white/30 hover:bg-white/40">
-                      <Play className="w-8 h-8 text-white fill-current" />
-                    </Button>
-                 </div>
                </div>
                <div className="p-6 pt-0">
                   <div className="flex items-baseline gap-3 mb-6">
@@ -246,7 +255,7 @@ export default function CourseDetailPage() {
             <div 
               key={lesson.id} 
               className="p-6 rounded-2xl bg-white/5 border border-white/5 hover:border-indigo-500/30 transition-all flex items-center justify-between group cursor-pointer"
-              onClick={() => router.push(`/courses/${id}/lessons/${lesson.id}`)}
+              onClick={user?.role !== 'instructor' ? () => router.push(`/courses/${id}/lessons/${lesson.id}`) : undefined}
             >
                <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center font-bold text-sm text-muted-foreground group-hover:bg-indigo-600 group-hover:text-white transition-colors">
@@ -254,19 +263,21 @@ export default function CourseDetailPage() {
                   </div>
                   <div>
                     <h4 className="font-bold">{lesson.title}</h4>
-                    <p className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
-                       {lesson.content_type === 'video' ? <PlayCircle className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
-                       {lesson.duration_minutes} minutes
-                    </p>
+                    {user?.role !== 'instructor' && (
+                      <p className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+                         {lesson.content_type === 'video' ? <PlayCircle className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
+                         {lesson.duration_minutes} minutes
+                      </p>
+                    )}
                   </div>
                </div>
-               {lesson.is_preview ? (
+               {user?.role !== 'instructor' && lesson.is_preview ? (
                  <Button variant="ghost" className="text-indigo-400 gap-2">
                     Preview <ChevronRight className="w-4 h-4" />
                  </Button>
-               ) : (
+               ) : user?.role !== 'instructor' ? (
                  <PlayCircle className="w-5 h-5 text-muted-foreground group-hover:text-indigo-400 transition-colors" />
-               )}
+               ) : null}
             </div>
           ))}
         </div>
@@ -370,12 +381,6 @@ export default function CourseDetailPage() {
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground leading-relaxed">{fb.comment}</p>
-                {fb.ai_summary && (
-                  <div className="mt-4 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
-                    <p className="text-[11px] font-bold text-indigo-400 mb-1">✨ AI Summary</p>
-                    <p className="text-xs text-indigo-300">{fb.ai_summary}</p>
-                  </div>
-                )}
               </div>
             ))}
           </div>

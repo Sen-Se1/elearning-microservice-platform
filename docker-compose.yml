@@ -1,10 +1,8 @@
 volumes:
   mongo_data:
   postgres_data:
-  minio_data:
   redis_data:
   course_data:
-  ollama_data:
   n8n_data:
 
 networks:
@@ -59,18 +57,15 @@ services:
       - JWT_SECRET_KEY=your-secret-key-change-in-production
       - JWT_EXPIRE_TIME=199d
       - JWT_ALGORITHM=HS256
-      - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=minioadmin
-      - MINIO_SECRET_KEY=minioadmin
+      - UPLOAD_DIR=./upload
+      - BASE_URL=http://localhost:8001
       - APP_NAME=Learning Portal
       - APP_VERSION=1.0.0
       - DEBUG=${DEBUG:-false}
       - ANALYTICS_SERVICE_URL=http://analytics-service:8003
-      - N8N_FEEDBACK_WEBHOOK_URL=http://n8n:5678/webhook-test/feedback
+      - N8N_FEEDBACK_WEBHOOK_URL=http://n8n:5678/webhook/feedback
     depends_on:
       postgres:
-        condition: service_healthy
-      minio:
         condition: service_healthy
     volumes:
       - course_data:/app/src
@@ -112,31 +107,12 @@ services:
       - DEBUG=true
       - JWT_SECRET_KEY=your-secret-key-change-in-production
       - JWT_ALGORITHM=HS256
-      - LLM_API_URL=http://ollama:11434/v1
-      - LLM_MODEL=llama3
+      - GEMINI_API_KEY=your_gemini_api_key_here
+      - GEMINI_MODEL=gemini-3.5-flash-lite
       - COURSE_SERVICE_URL=http://course-service:8001
       - ANALYTICS_SERVICE_URL=http://analytics-service:8003
-    depends_on:
-      - ollama
     networks:
       - learning-platform
-
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    networks:
-      - learning-platform
-
-  init-ollama:
-    image: curlimages/curl:latest
-    networks:
-      - learning-platform
-    depends_on:
-      - ollama
-    entrypoint: [ "sh", "-c", "sleep 5; curl -X POST http://ollama:11434/api/pull -d '{\"name\": \"llama3\"}'" ]
 
   mongo:
     image: mongo:7-jammy
@@ -165,25 +141,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - learning-platform
-
-  minio:
-    image: minio/minio:latest
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    command: server /data --console-address ":9001"
-    volumes:
-      - minio_data:/data
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
-      interval: 30s
-      timeout: 20s
-      retries: 3
     networks:
       - learning-platform
 

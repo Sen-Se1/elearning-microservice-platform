@@ -199,8 +199,8 @@ export default function LoginPage() {
               </p>
               <div className="text-xs text-center text-muted-foreground/60">
                 By signing in, you agree to our{' '}
-                <Link href="/terms" className="underline hover:text-foreground transition-colors">Terms</Link> and{' '}
-                <Link href="/privacy" className="underline hover:text-foreground transition-colors">Privacy Policy</Link>
+                <Link href="#" className="underline hover:text-foreground transition-colors">Terms</Link> and{' '}
+                <Link href="#" className="underline hover:text-foreground transition-colors">Privacy Policy</Link>
               </div>
             </CardFooter>
           </Card>

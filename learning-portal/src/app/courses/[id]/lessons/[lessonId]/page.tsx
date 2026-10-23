@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Navbar } from '@/components/shared/Navbar';
 import { courseApi, analyticsApi, aiApi } from '@/lib/api';
@@ -21,13 +21,299 @@ import {
   Send,
   Loader2,
   Award,
-  Sparkles
+  Sparkles,
+  SkipBack,
+  SkipForward,
+  Volume2,
+  Maximize,
+  Gauge,
+  Download
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
+import { cn, getMediaUrl } from '@/lib/utils';
+
+
+
+/** Custom controls for locally hosted audio and video lessons. */
+function LocalMediaPlayer({
+  src,
+  kind,
+  poster,
+}: {
+  src: string;
+  kind: 'video' | 'audio';
+  poster?: string;
+}) {
+  const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [speed, setSpeed] = useState(1);
+  const [volume, setVolume] = useState(1);
+  const [quality, setQuality] = useState('auto');
+
+  const seek = (seconds: number) => {
+    const media = mediaRef.current;
+    if (!media || !Number.isFinite(media.duration) || media.duration <= 0) return;
+    const target = Math.max(0, Math.min(media.duration, media.currentTime + seconds));
+    try {
+      media.currentTime = target;
+      setCurrentTime(target);
+    } catch (error) {
+      console.error('Could not seek media. The media server may not support HTTP Range requests.', error);
+    }
+  };
+
+  const togglePlay = async () => {
+    const media = mediaRef.current;
+    if (!media) return;
+    if (media.paused) {
+      try {
+        await media.play();
+        setPlaying(true);
+      } catch {
+        setPlaying(false);
+      }
+    } else {
+      media.pause();
+      setPlaying(false);
+    }
+  };
+
+  const changeSpeed = (value: string) => {
+    const nextSpeed = Number(value);
+    setSpeed(nextSpeed);
+    if (mediaRef.current) mediaRef.current.playbackRate = nextSpeed;
+  };
+
+  const changeVolume = (value: number) => {
+    setVolume(value);
+    if (mediaRef.current) mediaRef.current.volume = value;
+  };
+
+  const formatTime = (seconds: number) => {
+    if (!Number.isFinite(seconds)) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60).toString().padStart(2, '0');
+    const hours = Math.floor(mins / 60);
+    return hours ? `${hours}:${(mins % 60).toString().padStart(2, '0')}:${secs}` : `${mins}:${secs}`;
+  };
+
+  const toggleFullscreen = async () => {
+    const media = mediaRef.current;
+    if (!media) return;
+    const container = media.parentElement;
+    try {
+      if (!document.fullscreenElement && container) await container.requestFullscreen();
+      else await document.exitFullscreen();
+    } catch {
+      // Fullscreen may be unavailable in some browsers.
+    }
+  };
+
+  return (
+    <div className={`w-full h-full flex flex-col ${kind === 'audio' ? 'justify-center gap-8 p-6 md:p-12 bg-gradient-to-br from-zinc-950 via-indigo-950/30 to-black' : 'bg-black'}`}>
+      {kind === 'audio' && (
+        <div className="text-center space-y-3">
+          <div className="mx-auto w-24 h-24 rounded-3xl bg-indigo-600/20 border border-indigo-400/20 flex items-center justify-center">
+            <Volume2 className="w-12 h-12 text-indigo-300" />
+          </div>
+          <p className="text-lg font-semibold text-white">Audio lesson</p>
+          <p className="text-sm text-zinc-400">Use the controls below to listen and navigate.</p>
+        </div>
+      )}
+
+      {kind === 'video' ? (
+        <video
+          ref={(node) => { mediaRef.current = node; }}
+          className="w-full flex-1 min-h-0 object-contain"
+          poster={poster}
+          preload="metadata"
+          onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+          onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
+          onEnded={() => setPlaying(false)}
+        >
+          <source src={src} />
+          Your browser does not support HTML5 video.
+        </video>
+      ) : (
+        <audio
+          ref={(node) => { mediaRef.current = node; }}
+          src={src}
+          preload="metadata"
+          onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+          onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
+          onEnded={() => setPlaying(false)}
+          className="hidden"
+        />
+      )}
+
+      <div className="w-full space-y-3 rounded-2xl border border-white/10 bg-zinc-950/90 p-4 text-white">
+        <input
+          aria-label="Seek media"
+          type="range"
+          min={0}
+          max={Number.isFinite(duration) ? duration : 0}
+          step={0.1}
+          value={Math.min(currentTime, Number.isFinite(duration) ? duration : 0)}
+          onInput={(e) => {
+            // Update the media element directly while dragging the timeline.
+            const value = Number(e.currentTarget.value);
+            const media = mediaRef.current;
+            if (media && Number.isFinite(value) && Number.isFinite(media.duration)) {
+              try {
+                media.currentTime = Math.max(0, Math.min(value, media.duration));
+              } catch (error) {
+                console.error('Could not seek media. Check that the media server supports HTTP Range requests.', error);
+              }
+            }
+            setCurrentTime(value);
+          }}
+          onChange={(e) => {
+            // Keep keyboard and accessibility changes working as well.
+            const value = Number(e.currentTarget.value);
+            const media = mediaRef.current;
+            if (media && Number.isFinite(value) && Number.isFinite(media.duration)) {
+              try {
+                media.currentTime = Math.max(0, Math.min(value, media.duration));
+              } catch (error) {
+                console.error('Could not seek media.', error);
+              }
+            }
+            setCurrentTime(value);
+          }}
+          className="w-full accent-indigo-500 cursor-pointer"
+        />
+        <div className="flex flex-wrap items-center gap-3">
+          <button onClick={() => seek(-10)} title="Back 10 seconds" className="p-2 rounded-lg hover:bg-white/10">
+            <SkipBack className="w-5 h-5" />
+          </button>
+          <button onClick={togglePlay} title={playing ? 'Pause' : 'Play'} className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold min-w-20">
+            {playing ? 'Pause' : 'Play'}
+          </button>
+          <button onClick={() => seek(10)} title="Forward 10 seconds" className="p-2 rounded-lg hover:bg-white/10">
+            <SkipForward className="w-5 h-5" />
+          </button>
+
+          <span className="text-xs tabular-nums text-zinc-300 whitespace-nowrap">
+            {formatTime(currentTime)} / {formatTime(duration)}
+          </span>
+
+          <div className="flex items-center gap-2 ml-auto">
+            <Volume2 className="w-4 h-4 text-zinc-300" />
+            <input
+              aria-label="Volume"
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={volume}
+              onChange={(e) => changeVolume(Number(e.target.value))}
+              className="w-16 accent-indigo-500"
+            />
+          </div>
+
+          <label className="flex items-center gap-2 text-xs text-zinc-300">
+            <Gauge className="w-4 h-4" />
+            <select
+              aria-label="Playback speed"
+              value={speed}
+              onChange={(e) => changeSpeed(e.target.value)}
+              className="bg-zinc-900 border border-white/10 rounded-lg px-2 py-2 text-white"
+            >
+              {[0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map((rate) => (
+                <option key={rate} value={rate}>{rate}x</option>
+              ))}
+            </select>
+          </label>
+
+          {kind === 'video' && (
+            <>
+              <label className="text-xs text-zinc-300 flex items-center gap-1">
+                Quality
+                <select
+                  aria-label="Video quality"
+                  value={quality}
+                  onChange={(e) => setQuality(e.target.value)}
+                  className="bg-zinc-900 border border-white/10 rounded-lg px-2 py-2 text-white"
+                  title="Quality options require separate encoded video files"
+                >
+                  <option value="auto">Auto / source</option>
+                </select>
+              </label>
+              <button onClick={toggleFullscreen} title="Fullscreen" className="p-2 rounded-lg hover:bg-white/10">
+                <Maximize className="w-4 h-4" />
+              </button>
+            </>
+          )}
+
+          <a href={src} download className="p-2 rounded-lg hover:bg-white/10" title="Download media">
+            <Download className="w-4 h-4" />
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Loads and displays the actual text file instead of only the lesson description. */
+function TextLesson({ url, description }: { url?: string | null; description?: string | null }) {
+  const [content, setContent] = useState('');
+  const [loadingText, setLoadingText] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      if (!url) {
+        setContent(description || '');
+        return;
+      }
+      setLoadingText(true);
+      setError('');
+      try {
+        const response = await fetch(getMediaUrl(url));
+        if (!response.ok) throw new Error(`Request failed (${response.status})`);
+        const text = await response.text();
+        if (!cancelled) setContent(text);
+      } catch {
+        if (!cancelled) {
+          setError('Could not load the text file. Check that the file URL is accessible and the server allows this request.');
+          setContent(description || '');
+        }
+      } finally {
+        if (!cancelled) setLoadingText(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [url, description]);
+
+  return (
+    <div className="w-full h-full overflow-y-auto p-6 md:p-10 bg-zinc-950">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center justify-between gap-3 mb-6">
+          {url && <a href={getMediaUrl(url)} download className="text-sm text-indigo-300 hover:text-indigo-200 underline">Download .txt</a>}
+        </div>
+        {loadingText ? (
+          <p className="text-zinc-400">Loading text content…</p>
+        ) : error ? (
+          <p className="mb-4 text-sm text-amber-300">{error}</p>
+        ) : null}
+        <pre className="whitespace-pre-wrap break-words font-sans text-base md:text-lg leading-8 text-zinc-200">
+          {content || 'No text content is available. Check that the lesson has a valid .txt file URL or description.'}
+        </pre>
+      </div>
+    </div>
+  );
+}
 
 export default function LessonPlayerPage() {
   const { id: courseId, lessonId } = useParams();
@@ -219,7 +505,6 @@ export default function LessonPlayerPage() {
                    <Badge variant="outline" className="text-indigo-400 border-indigo-500/30">
                     {lesson.content_type.toUpperCase()}
                   </Badge>
-                  {lesson.is_preview && <Badge className="bg-emerald-500/20 text-emerald-400 border-none">Free Preview</Badge>}
                 </div>
                 <h1 className="text-3xl md:text-4xl font-bold font-outfit">{lesson.title}</h1>
               </div>
@@ -244,32 +529,70 @@ export default function LessonPlayerPage() {
               </div>
             </div>
 
-            {/* Video Player / Content */}
-            <div className="rounded-3xl overflow-hidden border border-white/10 bg-black aspect-video mb-8 shadow-2xl relative group">
-              {lesson.content_type === 'video' ? (
-                <div className="w-full h-full flex items-center justify-center">
-                  {lesson.content_url ? (
-                    <iframe 
-                      src={lesson.content_url} 
-                      className="w-full h-full"
-                      allowFullScreen
-                    />
-                  ) : (
-                    <div className="text-center">
-                      <div className="w-20 h-20 rounded-full bg-indigo-600/20 flex items-center justify-center mx-auto mb-4 border border-indigo-500/30">
-                        <PlayCircle className="w-10 h-10 text-indigo-500" />
-                      </div>
-                      <p className="text-muted-foreground font-medium">Video content currently unavailable</p>
-                    </div>
-                  )}
+            {/* Lesson Media / Content */}
+            <div className="rounded-3xl overflow-hidden border border-white/10 bg-black aspect-video mb-8 shadow-2xl relative">
+              {lesson.content_type === 'video' && lesson.content_url ? (
+                lesson.content_url.includes('youtube.com') || lesson.content_url.includes('youtu.be') ? (
+                  <iframe
+                    src={(() => {
+                      try {
+                        const parsed = new URL(lesson.content_url!);
+                        let videoId = '';
+                        if (parsed.hostname.includes('youtu.be')) {
+                          videoId = parsed.pathname.split('/').filter(Boolean)[0] || '';
+                        } else if (parsed.pathname === '/watch') {
+                          videoId = parsed.searchParams.get('v') || '';
+                        } else {
+                          videoId = parsed.pathname.split('/').filter(Boolean).pop() || '';
+                        }
+                        return videoId
+                          ? `https://www.youtube-nocookie.com/embed/${videoId}`
+                          : '';
+                      } catch {
+                        return '';
+                      }
+                    })()}
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    title="Video lesson"
+                  />
+                ) : (
+                  <LocalMediaPlayer
+                    src={getMediaUrl(lesson.content_url)}
+                    kind="video"
+                    poster={lesson.thumbnail_url || undefined}
+                  />
+                )
+              ) : lesson.content_type === 'audio' && lesson.content_url ? (
+                <LocalMediaPlayer src={getMediaUrl(lesson.content_url)} kind="audio" />
+              ) : lesson.content_type === 'text' && lesson.content_url ? (
+                <TextLesson url={lesson.content_url} description={lesson.description} />
+              ) : lesson.content_type === 'pdf' && lesson.content_url ? (
+                <div className="w-full h-full flex items-center justify-center p-4">
+                  <embed
+                    src={getMediaUrl(lesson.content_url)}
+                    type="application/pdf"
+                    className="w-full h-full"
+                    title="PDF lesson"
+                  />
+                </div>
+              ) : lesson.content_type === 'image' && lesson.content_url ? (
+                <div className="w-full h-full flex items-center justify-center p-4">
+                  <img
+                    src={getMediaUrl(lesson.content_url)}
+                    alt={lesson.title || 'Lesson image'}
+                    className="max-w-full max-h-full object-contain"
+                  />
                 </div>
               ) : (
-                <div className="w-full h-full p-12 bg-zinc-900/50 overflow-y-auto">
-                   <div className="prose prose-invert max-w-none">
-                     <p className="text-xl leading-relaxed text-zinc-300">
-                       {lesson.description || "This lesson contains text-based content. Read through the material below to complete the lesson."}
-                     </p>
-                   </div>
+                <div className="w-full h-full p-8 md:p-16 bg-zinc-900/50 overflow-y-auto flex flex-col items-center justify-center">
+                  <div className="prose prose-invert max-w-2xl text-center">
+                    <p className="text-xl md:text-2xl leading-relaxed text-zinc-300 font-medium whitespace-pre-wrap">
+                      {lesson.description || 'This lesson does not have any content yet.'}
+                    </p>
+                  </div>
                 </div>
               )}
             </div>

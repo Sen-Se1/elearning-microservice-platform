@@ -7,12 +7,12 @@ import { useAuth } from '@/components/shared/AuthProvider';
 import { courseApi, analyticsApi } from '@/lib/api';
 import { Course } from '@/types';
 import { buttonVariants } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn, getMediaUrl } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
 import {
-  BookOpen, Clock, TrendingUp, Award, PlayCircle,
+  BookOpen, Clock, TrendingUp, Award, PlayCircle, Play,
   ArrowRight, BarChart2, CheckCircle2, Sparkles, Eye, Users
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -23,6 +23,11 @@ interface Enrollment {
   progress_percentage: number;
   completed: boolean;
   enrolled_at: string;
+  course_title?: string;
+  course_thumbnail?: string;
+  course_instructor?: string;
+  total_lessons?: number;
+  completed_lessons?: number;
   course?: Course;
 }
 
@@ -46,33 +51,40 @@ export default function DashboardPage() {
 
     const fetchData = async () => {
       try {
-        const [enrollRes, topRes] = await Promise.all([
-          courseApi.get('/enrollments/me'),
+        const [enrollRes, topRes, coursesRes] = await Promise.all([
+          courseApi.get('/enrollments/me').catch(() => ({ data: { items: [] } })),
           analyticsApi.get('/metrics/top-courses?limit=5').catch(() => ({ data: [] })),
+          courseApi.get('/courses/').catch(() => ({ data: { items: [] } })),
         ]);
         
-        const enrollmentData = enrollRes.data.items || enrollRes.data || [];
-        setEnrollments(enrollmentData);
+        const rawEnrollments = enrollRes.data?.items || enrollRes.data || [];
+        const allCourses: Course[] = coursesRes.data?.items || coursesRes.data || [];
+
+        // Enrich enrollments with full course details
+        const enrichedEnrollments: Enrollment[] = rawEnrollments.map((enroll: any) => {
+          const matchedCourse = allCourses.find((ac: any) => ac.id === enroll.course_id);
+          return {
+            ...enroll,
+            course: matchedCourse,
+            course_title: matchedCourse?.title || enroll.course_title || (enroll.course_id ? `Course ${enroll.course_id.slice(0, 8)}...` : 'Untitled Course'),
+            course_thumbnail: matchedCourse?.thumbnail_url || enroll.course_thumbnail,
+          };
+        });
+        setEnrollments(enrichedEnrollments);
 
         // Enrich top courses with titles
-        let rawTop = topRes.data.items || topRes.data || [];
+        let rawTop = topRes.data?.items || topRes.data || [];
         // Filter out zero-UUID if it exists
         rawTop = rawTop.filter((c: any) => c.course_id !== '00000000-0000-0000-0000-000000000000');
 
-        try {
-          const coursesRes = await courseApi.get('/courses/');
-          const allCourses = coursesRes.data.items || coursesRes.data || [];
-          const enrichedTop = rawTop.map((topItem: any) => {
-            const course = allCourses.find((ac: any) => ac.id === topItem.course_id);
-            return {
-              ...topItem,
-              title: course?.title || `Course ${topItem.course_id.slice(0, 5)}...`
-            };
-          });
-          setTopCourses(enrichedTop);
-        } catch (e) {
-          setTopCourses(rawTop);
-        }
+        const enrichedTop = rawTop.map((topItem: any) => {
+          const course = allCourses.find((ac: any) => ac.id === topItem.course_id);
+          return {
+            ...topItem,
+            title: course?.title || (topItem.course_id ? `Course ${topItem.course_id.slice(0, 5)}...` : 'Course')
+          };
+        });
+        setTopCourses(enrichedTop);
       } catch (err) {
         console.error('Dashboard fetch error:', err);
       } finally {
@@ -163,42 +175,111 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {enrollments.map((enrollment, i) => (
-                  <motion.div
-                    key={enrollment.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    className="glass rounded-2xl border border-white/5 p-5 flex items-center gap-5 group hover:border-indigo-500/30 transition-all"
-                  >
-                    <div className="w-14 h-14 rounded-xl bg-indigo-600/20 flex items-center justify-center flex-shrink-0 border border-indigo-500/20 group-hover:bg-indigo-600/30 transition-colors">
-                      <PlayCircle className="w-7 h-7 text-indigo-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-bold truncate">Course {enrollment.course_id.slice(0, 8)}...</h3>
-                        {enrollment.completed && (
-                          <Badge className="bg-emerald-500/20 text-emerald-400 border-none text-[10px]">Completed</Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-indigo-500 rounded-full transition-all duration-700"
-                            style={{ width: `${enrollment.progress_percentage || 0}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-muted-foreground w-8">{enrollment.progress_percentage || 0}%</span>
-                      </div>
-                    </div>
-                    <Link
-                      href={`/courses/${enrollment.course_id}`}
-                      className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'text-indigo-400 flex-shrink-0')}
+                {enrollments.map((enrollment, i) => {
+                  const courseTitle = enrollment.course_title || enrollment.course?.title || `Course ${enrollment.course_id.slice(0, 8)}...`;
+                  const courseThumb = getMediaUrl(
+                    enrollment.course_thumbnail || enrollment.course?.thumbnail_url,
+                    'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=300&q=80'
+                  );
+                  const progress = Math.round(enrollment.progress_percentage || 0);
+
+                  return (
+                    <motion.div
+                      key={enrollment.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      className="glass rounded-2xl border border-white/5 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 group hover:border-indigo-500/30 transition-all shadow-lg shadow-black/20"
                     >
-                      Continue
-                    </Link>
-                  </motion.div>
-                ))}
+                      {/* Course Thumbnail */}
+                      <Link
+                        href={`/courses/${enrollment.course_id}`}
+                        className="relative w-full sm:w-28 sm:h-20 h-36 rounded-xl overflow-hidden flex-shrink-0 bg-zinc-800 border border-white/10 group-hover:scale-[1.02] transition-transform"
+                      >
+                        <img
+                          src={courseThumb}
+                          alt={courseTitle}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                          <div className="w-8 h-8 rounded-full bg-indigo-600/90 text-white flex items-center justify-center shadow-lg backdrop-blur-sm group-hover:scale-110 transition-transform">
+                            <Play className="w-4 h-4 fill-current ml-0.5" />
+                          </div>
+                        </div>
+                      </Link>
+
+                      {/* Course Info & Progress */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                          <Link
+                            href={`/courses/${enrollment.course_id}`}
+                            className="font-bold text-base hover:text-indigo-400 transition-colors truncate max-w-full"
+                          >
+                            {courseTitle}
+                          </Link>
+                          {enrollment.completed ? (
+                            <Badge className="bg-emerald-500/20 text-emerald-400 border-none text-[10px] font-semibold">
+                              <CheckCircle2 className="w-3 h-3 mr-1 inline" /> Completed
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-indigo-500/20 text-indigo-400 border-none text-[10px]">
+                              In Progress
+                            </Badge>
+                          )}
+                          {enrollment.course?.category && (
+                            <Badge variant="outline" className="border-white/10 text-[10px] text-muted-foreground">
+                              {enrollment.course.category}
+                            </Badge>
+                          )}
+                        </div>
+
+                        {/* Additional metadata */}
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
+                          {enrollment.course?.level && (
+                            <span className="capitalize flex items-center gap-1">
+                              <BarChart2 className="w-3 h-3" /> {enrollment.course.level}
+                            </span>
+                          )}
+                          {enrollment.total_lessons ? (
+                            <span className="flex items-center gap-1">
+                              <BookOpen className="w-3 h-3" /> {enrollment.completed_lessons || 0}/{enrollment.total_lessons} lessons
+                            </span>
+                          ) : null}
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                            <div
+                              className={cn(
+                                "h-full rounded-full transition-all duration-700",
+                                enrollment.completed
+                                  ? "bg-emerald-500"
+                                  : "bg-gradient-to-r from-indigo-500 to-purple-500"
+                              )}
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-semibold text-muted-foreground w-9 text-right">{progress}%</span>
+                        </div>
+                      </div>
+
+                      {/* Action CTA */}
+                      <Link
+                        href={`/courses/${enrollment.course_id}`}
+                        className={cn(
+                          buttonVariants({ size: 'sm' }),
+                          enrollment.completed
+                            ? "border border-white/10 hover:bg-white/10 text-white flex-shrink-0"
+                            : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20 flex-shrink-0"
+                        )}
+                      >
+                        {enrollment.completed ? 'Review' : 'Continue'}
+                        <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                      </Link>
+                    </motion.div>
+                  );
+                })}
               </div>
             )}
           </div>
