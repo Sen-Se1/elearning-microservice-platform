@@ -1,6 +1,6 @@
 # E-learning Microservice Platform 🎓
 
-A scalable, AI-powered e-learning platform built with a microservices architecture. This project integrates modern web technologies, AI assistance (using local LLMs), and automated feedback workflows.
+A scalable, AI-powered e-learning platform built with a microservices architecture. This project integrates modern web technologies, AI assistance (using Google Gemini with multimodal document and media processing), and automated feedback workflows.
 
 ## 🏗️ Architecture
 
@@ -20,15 +20,15 @@ graph TD
     AnalyticsSvc --> DB_PG
     
     AnalyticsSvc --> DB_Redis[(Redis)]
-    AITutorSvc --> Ollama[Ollama Local LLM]
-    CourseSvc --> DB_Minio[(MinIO)]
+    AITutorSvc --> Gemini[Google Gemini API]
+    CourseSvc --> DB_Uploads[(Persistent Uploads Volume)]
     
     Feedback(User Feedback) --> n8n[n8n Automation]
 ```
 
 ## 🚀 Key Features
 
-- **AI Tutor:** Contextual Q&A based on course content, automated quiz generation, and personalized recommendations powered by a local Ollama LLM.
+- **AI Tutor:** Contextual Q&A based on courses & lessons, automated quiz generation directly from lesson content (PDF, Audio, Video, Image, Text, YouTube), and personalized recommendations powered by Google Gemini.
 - **n8n Automation:** Automated feedback collection workflow with AI enrichment and notifications.
 - **Analytics Dashboard:** Tracking enrollments, course completions, and learning trends.
 - **Learning Portal:** Modern, responsive interface built with Next.js and shadcn/ui.
@@ -40,10 +40,10 @@ graph TD
 | :--- | :--- |
 | **Frontend** | Next.js, shadcn/ui, Tailwind CSS |
 | **Backend Services** | FastAPI (Python), Express (Node.js) |
-| **AI Integration** | Ollama (Local LLM) |
+| **AI Integration** | Google Gemini API (`gemini-3.5-flash-lite` / Multimodal) |
 | **API Gateway** | Nginx |
 | **Databases** | PostgreSQL, MongoDB |
-| **Caching & Storage** | Redis, MinIO |
+| **Caching & Storage** | Redis, Persistent Docker Volumes |
 | **Automation** | n8n |
 | **DevOps** | Docker, Docker Compose, Kubernetes |
 
@@ -108,7 +108,7 @@ elearning-microservice-platform/
 │   ├── analytics-service/   # Tracking & Trends (FastAPI)
 │   ├── course-service/      # Content Management (FastAPI)
 │   ├── user-service/        # Identity Management (Node.js)
-│   └── ai-tutor-service/    # AI Assistance with Ollama (FastAPI)
+│   └── ai-tutor-service/    # AI Assistance with Google Gemini (FastAPI)
 ├── k8s/                     # Kubernetes Manifests & Deployment Scripts
 ├── learning-portal/         # Frontend Next.js Application
 ├── gateway/                 # Nginx Configuration

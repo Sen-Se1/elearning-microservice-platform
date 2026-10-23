@@ -46,8 +46,8 @@ flowchart TD
     DB_User[("User DB<br/>MongoDB")]
     DB_Course[("Course & Analytics DB<br/>PostgreSQL")]
     Cache_Redis[("Cache<br/>Redis")]
-    Storage[("Object Storage<br/>MinIO")]
-    Ollama["Local LLM<br/>Ollama Llama3"]
+    Storage[("Uploads Storage<br/>Docker Volume")]
+    Gemini["Cloud LLM<br/>Google Gemini API"]
 
     Learner --> Gateway
     Instructor --> Gateway
@@ -63,7 +63,7 @@ flowchart TD
     CourseSvc --> Storage
     AnalyticsSvc --> DB_Course
     AnalyticsSvc --> Cache_Redis
-    AITutorSvc --> Ollama
+    AITutorSvc --> Gemini
     
     CourseSvc -.->|Triggers a Webhook| n8n
     n8n -.->|AI Analysis & Insights| AnalyticsSvc
@@ -185,20 +185,25 @@ flowchart TD
     API["API / Routers Layer<br/>(FastAPI Routers)"]
     ChatCtrl["Chat Controller"]
     QuizCtrl["Quiz Controller"]
+    RecsCtrl["Recommendations Controller"]
     
     ServiceLayer["Service / Business Logic Layer"]
-    PromptLogic["Prompt Builder Service"]
-    LLMLogic["LLM Orchestration Service"]
+    LessonContent["Lesson Content Service<br/>(PDF, Audio, Video, Image, Text, YouTube)"]
+    LLMLogic["LLM Service<br/>(Gemini with Fallback Models)"]
+    ExternalSvc["External Service<br/>(Course & Analytics Integration)"]
     
-    External["Local Model"]
-    Ollama["Ollama Local LLM<br/>(Llama 3)"]
+    External["Cloud Multimodal LLM"]
+    Gemini["Google Gemini API<br/>(gemini-3.5-flash-lite)"]
 
-    API --> ChatCtrl & QuizCtrl
+    API --> ChatCtrl & QuizCtrl & RecsCtrl
     ChatCtrl --> LLMLogic
+    QuizCtrl --> LessonContent
     QuizCtrl --> LLMLogic
+    RecsCtrl --> ExternalSvc
+    RecsCtrl --> LLMLogic
     
-    LLMLogic --> PromptLogic
-    LLMLogic --> Ollama
+    LessonContent --> ExternalSvc
+    LLMLogic --> Gemini
 ```
 
 ---
@@ -240,7 +245,7 @@ flowchart LR
     end
 
     %% Secondary Actors / Systems (Right)
-    Ollama[AI Tutor - Ollama]
+    Gemini[AI Tutor - Google Gemini]
     N8N[n8n Automation]
     AnalyticSvc[Analytics Service]
 
@@ -271,8 +276,8 @@ flowchart LR
     UC_Quiz -. "«extend»" .-> UC_Chat
 
     %% ── Use Case to System associations ──
-    UC_Chat --- Ollama
-    UC_Quiz --- Ollama
+    UC_Chat --- Gemini
+    UC_Quiz --- Gemini
     UC_Feedback --- N8N
     UC_Enroll --- AnalyticSvc
     UC_Analytics --- AnalyticSvc
@@ -491,7 +496,7 @@ sequenceDiagram
     
     Learner->>Portal: Watches lesson & Asks a question
     Portal->>AISvc: POST /api/v1/tutor/chat
-    AISvc-->>Portal: Returns AI response (Ollama)
+    AISvc-->>Portal: Returns AI response (Google Gemini)
     
     Learner->>Portal: Completes course & Leaves Feedback
     Portal->>CourseSvc: POST /api/v1/feedback/
@@ -523,13 +528,13 @@ flowchart TD
             AITutorSvc["Container: ai-tutor-service<br/>Port: 8004"]
             N8N["Container: n8n<br/>External port: 5678"]
             
-            Ollama["Container: ollama<br/>Port: 11434"]
-            
             PG[("Container: postgres<br/>Port: 5432")]
             Mongo[("Container: mongo<br/>Port: 27017")]
             Redis[("Container: redis<br/>Port: 6379")]
-            Minio[("Container: minio<br/>Port: 9000")]
+            UploadsVol[("Docker Volume: course_data_upload<br/>Mount: /app/upload")]
         end
+        
+        GeminiCloud["Google Gemini Cloud API<br/>HTTPS (REST)"]
     end
     
     Client((Browser Learner/Instructor)) -->|HTTP:80| Gateway
@@ -540,11 +545,12 @@ flowchart TD
     Gateway -->|proxy_pass| CourseSvc
     Gateway -->|proxy_pass| AnalyticsSvc
     Gateway -->|proxy_pass| AITutorSvc
+    Gateway -->|proxy_pass| UploadsVol
     
     UserSvc -->|Mongoose| Mongo
     CourseSvc -->|SQLAlchemy| PG
-    CourseSvc -->|Boto3| Minio
+    CourseSvc -->|Filesystem Mount| UploadsVol
     AnalyticsSvc -->|SQLAlchemy| PG
     AnalyticsSvc -->|Redis-py| Redis
-    AITutorSvc -->|API Rest| Ollama
+    AITutorSvc -->|REST API / HTTPS| GeminiCloud
 ```
